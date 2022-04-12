@@ -28,15 +28,13 @@ import copy
 import numpy as np
 import torch
 import torchvision
-from data import Cifar, IMBALANCECIFAR10
 
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
-
-from models import TwoLayerNet, VanillaCNN, MyModel, resnet32
-from losses import FocalLoss, reweight
+import torchvision.models as models
+from data_loader import ImageLoader
 
 parser = argparse.ArgumentParser(description='CS7643 Assignment-2 Part 2')
 parser.add_argument('--config', default='./config.yaml')
@@ -181,6 +179,97 @@ def adjust_learning_rate(optimizer, epoch, args):
         param_group['lr'] = lr
 
 
+# def old_main():
+#     global args
+#     args = parser.parse_args()
+#     with open(args.config) as f:
+#         config = yaml.load(f)
+#
+#     for key in config:
+#         for k, v in config[key].items():
+#             setattr(args, k, v)
+#
+#     transform_train = transforms.Compose([
+#         transforms.RandomCrop(32, padding=4),
+#         transforms.RandomHorizontalFlip(),
+#         transforms.ToTensor(),
+#         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+#     ])
+#
+#     # Normalize the test set same as training set without augmentation
+#     transform_test = transforms.Compose([
+#         transforms.ToTensor(),
+#         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+#     ])
+#
+#     if args.imbalance == "regular":
+#         train_dataset = torchvision.datasets.CIFAR10(
+#             root='./data', train=True, download=True, transform=transform_train)
+#     else:
+#         train_dataset = IMBALANCECIFAR10(root='../part1-convnet/data',
+#                                          transform=transform_train,
+#                                          )
+#         cls_num_list = train_dataset.get_cls_num_list()
+#         if args.reweight:
+#             per_cls_weights = reweight(cls_num_list, beta=args.beta)
+#             if torch.cuda.is_available():
+#                 per_cls_weights = per_cls_weights.cuda()
+#         else:
+#             per_cls_weights = None
+#
+#     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+#
+#     test_dataset = torchvision.datasets.CIFAR10(
+#         root='./data', train=False, download=True, transform=transform_test)
+#     test_loader = torch.utils.data.DataLoader(
+#         test_dataset, batch_size=100, shuffle=False, num_workers=2)
+#
+#     if args.model == 'TwoLayerNet':
+#         model = TwoLayerNet(3072, 256, 10)
+#     elif args.model == 'VanillaCNN':
+#         model = VanillaCNN()
+#     elif args.model == 'MyModel':
+#         model = MyModel()
+#     elif args.model == 'ResNet-32':
+#         model = resnet32()
+#     print(model)
+#     if torch.cuda.is_available():
+#         model = model.cuda()
+#
+#     if args.loss_type == "CE":
+#         criterion = nn.CrossEntropyLoss()
+#     else:
+#         criterion = FocalLoss(weight=per_cls_weights, gamma=1)
+#
+#     optimizer = torch.optim.SGD(model.parameters(), args.learning_rate,
+#                                 momentum=args.momentum,
+#                                 weight_decay=args.reg)
+#     best = 0.0
+#     best_cm = None
+#     best_model = None
+#     for epoch in range(args.epochs):
+#         adjust_learning_rate(optimizer, epoch, args)
+#
+#         # train loop
+#         train(epoch, train_loader, model, optimizer, criterion)
+#
+#         # validation loop
+#         acc, cm = validate(epoch, test_loader, model, criterion)
+#
+#         if acc > best:
+#             best = acc
+#             best_cm = cm
+#             best_model = copy.deepcopy(model)
+#
+#     print('Best Prec @1 Acccuracy: {:.4f}'.format(best))
+#     per_cls_acc = best_cm.diag().detach().numpy().tolist()
+#     for i, acc_i in enumerate(per_cls_acc):
+#         print("Accuracy of Class {}: {:.4f}".format(i, acc_i))
+#
+#     if args.save_best:
+#         torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + '.pth')
+
+
 def main():
     global args
     args = parser.parse_args()
@@ -192,60 +281,29 @@ def main():
             setattr(args, k, v)
 
     transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
+        transforms.Resize(256),  # rescale the image keeping the original aspect ratio
+        transforms.CenterCrop(256),  # we get only the center of that rescaled
+        transforms.RandomCrop(224),  # random crop within the center crop
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    # Normalize the test set same as training set without augmentation
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
+    train_loader = torch.utils.data.DataLoader(
+        ImageLoader('images', transform_train, data_path='data', partition='test'), batch_size=128, shuffle=False)
 
-    if args.imbalance == "regular":
-        train_dataset = torchvision.datasets.CIFAR10(
-            root='./data', train=True, download=True, transform=transform_train)
-    else:
-        train_dataset = IMBALANCECIFAR10(root='../part1-convnet/data',
-                                         transform=transform_train,
-                                         )
-        cls_num_list = train_dataset.get_cls_num_list()
-        if args.reweight:
-            per_cls_weights = reweight(cls_num_list, beta=args.beta)
-            if torch.cuda.is_available():
-                per_cls_weights = per_cls_weights.cuda()
-        else:
-            per_cls_weights = None
-
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-
-    test_dataset = torchvision.datasets.CIFAR10(
-        root='./data', train=False, download=True, transform=transform_test)
-    test_loader = torch.utils.data.DataLoader(
-        test_dataset, batch_size=100, shuffle=False, num_workers=2)
-
-    if args.model == 'TwoLayerNet':
-        model = TwoLayerNet(3072, 256, 10)
-    elif args.model == 'VanillaCNN':
-        model = VanillaCNN()
-    elif args.model == 'MyModel':
-        model = MyModel()
-    elif args.model == 'ResNet-32':
-        model = resnet32()
-    print(model)
+    # move into separate file
+    model = models.resnet50(pretrained=True)
+    # modules = list(resnet.children())
+    # # replace last fc layer with new one.
+    # modules = modules[:-1] + [nn.Linear(modules[-1].weight.shape[1], 100)]
+    # model = nn.Sequential(*modules)
     if torch.cuda.is_available():
         model = model.cuda()
 
-    if args.loss_type == "CE":
-        criterion = nn.CrossEntropyLoss()
-    else:
-        criterion = FocalLoss(weight=per_cls_weights, gamma=1)
+    criterion = nn.CrossEntropyLoss()
 
-    optimizer = torch.optim.SGD(model.parameters(), args.learning_rate,
-                                momentum=args.momentum,
-                                weight_decay=args.reg)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     best = 0.0
     best_cm = None
     best_model = None
@@ -255,8 +313,8 @@ def main():
         # train loop
         train(epoch, train_loader, model, optimizer, criterion)
 
-        # validation loop
-        acc, cm = validate(epoch, test_loader, model, criterion)
+        # validation loop, change back to test_loader
+        acc, cm = validate(epoch, train_loader, model, criterion)
 
         if acc > best:
             best = acc

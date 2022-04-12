@@ -27,6 +27,7 @@ import numpy as np
 import lmdb
 import torch
 
+
 def default_loader(path):
     try:
         im = Image.open(path).convert('RGB')
@@ -34,8 +35,9 @@ def default_loader(path):
     except:
         print(..., file=sys.stderr)
         return Image.new('RGB', (224, 224), 'white')
-       
-class ImagerLoader(data.Dataset):
+
+
+class ImageLoader(data.Dataset):
     def __init__(self, img_path, transform=None, target_transform=None,
                  loader=default_loader, square=False, data_path=None, partition=None, sem_reg=None):
 
@@ -153,16 +155,17 @@ class ImagerLoader(data.Dataset):
             img_id = self.ids[index]
 
         # output
-        if self.partition == 'train':
-            if self.semantic_reg:
-                return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class]
-            else:
-                return [img, instrs, itr_ln, ingrs, igr_ln], [target]
-        else:
-            if self.semantic_reg:
-                return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class, img_id, rec_id]
-            else:
-                return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_id, rec_id]
+        # if self.partition == 'train':
+        #     if self.semantic_reg:
+        #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class]
+        #     else:
+        #         return [img, instrs, itr_ln, ingrs, igr_ln], [target]
+        # else:
+        #     if self.semantic_reg:
+        #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class, img_id, rec_id]
+        #     else:
+        #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_id, rec_id]
+        return img, target
 
     def __len__(self):
         return len(self.ids)
