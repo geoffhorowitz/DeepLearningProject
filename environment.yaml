@@ -1,4 +1,4 @@
-name: cs7643-a2
+name: dl_test
 channels:
   - defaults
 dependencies:
