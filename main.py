@@ -93,7 +93,8 @@ def train(epoch, data_loader, model, optimizer, criterion):
         # Referenced
         # https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html#optimizing-the-model-parameters
         out = model(data)
-        loss = criterion(out, target)
+        # TODO: replace first out with im_out, replace second out with recipe_out
+        loss = criterion(out, out, target)
 
         optimizer.zero_grad()
         loss.backward()
@@ -136,7 +137,8 @@ def validate(epoch, val_loader, model, criterion):
         #############################################################################
         with torch.no_grad():
             out = model(data)
-            loss = criterion(out, target)
+            # TODO: replace first out with im_out, replace second out with recipe_out
+            loss = criterion(out, out, target)
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -190,17 +192,16 @@ def im2recipe():
     ])
     image_loader = ImageLoader('images', transform_train, data_path='data', partition='test')
     num_images = len(image_loader)
-
-    train_loader = torch.utils.data.DataLoader(image_loader, batch_size=128, sampler=np.arange(int(0.01*num_images)))
+    train_loader = torch.utils.data.DataLoader(
+        image_loader, batch_size=args.batch_size, sampler=np.arange(int(0.01*num_images)))
 
     # move into separate file
     model = models.resnet50(pretrained=True)
-    # modules = list(resnet.children())
-    # # replace last fc layer with new one.
-    # modules = modules[:-1] + [nn.Linear(modules[-1].weight.shape[1], 100)]
-    # model = nn.Sequential(*modules)
+    # 2048 is featureDim of input of last fc
+    # hard-coding 1024 as embedding dim but can change later
+    model.fc = nn.Linear(2048, 1024)
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CosineEmbeddingLoss(0.1)
     return train_loader, model, criterion
 
 
