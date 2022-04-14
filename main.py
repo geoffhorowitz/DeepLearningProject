@@ -179,6 +179,35 @@ def adjust_learning_rate(optimizer, epoch, args):
         param_group['lr'] = lr
 
 
+def im2recipe():
+    transform_train = transforms.Compose([
+        transforms.Resize(256),  # rescale the image keeping the original aspect ratio
+        transforms.CenterCrop(256),  # we get only the center of that rescaled
+        transforms.RandomCrop(224),  # random crop within the center crop
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    image_loader = ImageLoader('images', transform_train, data_path='data', partition='test')
+    num_images = len(image_loader)
+
+    train_loader = torch.utils.data.DataLoader(image_loader, batch_size=128, sampler=np.arange(int(0.01*num_images)))
+
+    # move into separate file
+    model = models.resnet50(pretrained=True)
+    # modules = list(resnet.children())
+    # # replace last fc layer with new one.
+    # modules = modules[:-1] + [nn.Linear(modules[-1].weight.shape[1], 100)]
+    # model = nn.Sequential(*modules)
+
+    criterion = nn.CrossEntropyLoss()
+    return train_loader, model, criterion
+
+
+def recipe2im():
+    # TODO
+    return None, None, None
+
 # def old_main():
 #     global args
 #     args = parser.parse_args()
@@ -280,28 +309,9 @@ def main():
         for k, v in config[key].items():
             setattr(args, k, v)
 
-    transform_train = transforms.Compose([
-        transforms.Resize(256),  # rescale the image keeping the original aspect ratio
-        transforms.CenterCrop(256),  # we get only the center of that rescaled
-        transforms.RandomCrop(224),  # random crop within the center crop
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-
-    train_loader = torch.utils.data.DataLoader(
-        ImageLoader('images', transform_train, data_path='data', partition='test'), batch_size=128, shuffle=False)
-
-    # move into separate file
-    model = models.resnet50(pretrained=True)
-    # modules = list(resnet.children())
-    # # replace last fc layer with new one.
-    # modules = modules[:-1] + [nn.Linear(modules[-1].weight.shape[1], 100)]
-    # model = nn.Sequential(*modules)
+    train_loader, model, criterion = im2recipe() if args.model == 'im2recipe' else recipe2im()
     if torch.cuda.is_available():
         model = model.cuda()
-
-    criterion = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     best = 0.0

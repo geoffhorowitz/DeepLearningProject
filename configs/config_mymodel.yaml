@@ -1,5 +1,5 @@
 Train:
-  batch_size: 512
+  batch_size: 2048
   learning_rate: 0.05
   reg: 0.00005
   epochs: 15
@@ -8,11 +8,7 @@ Train:
   momentum: 0.9
 
 network:
-  model: MyModel # TwoLayerNet or VanillaCNN or MyModel or ResNet-32
+  model: im2recipe
 
 data:
-  imbalance: regular # regular or imbalance
   save_best: True
-
-loss:
-  loss_type: CE # CE or Focal
