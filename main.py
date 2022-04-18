@@ -35,6 +35,7 @@ from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 import torchvision.models as models
 from data_loader import ImageLoader
+from models import Im2Recipe
 
 parser = argparse.ArgumentParser(description='CS7643 Assignment-2 Part 2')
 parser.add_argument('--config', default='./config.yaml')
@@ -92,7 +93,7 @@ def train(epoch, data_loader, model, optimizer, criterion):
         #############################################################################
         # Referenced
         # https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html#optimizing-the-model-parameters
-        out = model(data)
+        out, _ = model(data)
         # TODO: replace first out with im_out, replace second out with recipe_out
         loss = criterion(out, out, target)
 
@@ -136,7 +137,7 @@ def validate(epoch, val_loader, model, criterion):
         #       HINT: torch.no_grad()                                               #
         #############################################################################
         with torch.no_grad():
-            out = model(data)
+            out, _ = model(data)
             # TODO: replace first out with im_out, replace second out with recipe_out
             loss = criterion(out, out, target)
         #############################################################################
@@ -195,11 +196,7 @@ def im2recipe():
     train_loader = torch.utils.data.DataLoader(
         image_loader, batch_size=args.batch_size, sampler=np.arange(int(0.01*num_images)))
 
-    # move into separate file
-    model = models.resnet50(pretrained=True)
-    # 2048 is featureDim of input of last fc
-    # hard-coding 1024 as embedding dim but can change later
-    model.fc = nn.Linear(2048, 1024)
+    model = Im2Recipe()
 
     criterion = nn.CosineEmbeddingLoss(0.1)
     return train_loader, model, criterion
