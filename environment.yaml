@@ -1,4 +1,4 @@
-name: dl_test
+name: dl_tests
 channels:
   - defaults
 dependencies:
@@ -6,4 +6,6 @@ dependencies:
   - matplotlib
   - pyyaml=5.4.1
   - pillow
-  - lmdb
+  - pip
+  pip:
+    - lmdb
