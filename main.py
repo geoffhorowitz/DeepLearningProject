@@ -196,7 +196,7 @@ def im2recipe():
     train_loader = torch.utils.data.DataLoader(
         image_loader, batch_size=args.batch_size, sampler=np.arange(int(0.01*num_images)))
 
-    model = Im2Recipe()
+    model = Im2Recipe(args.embed_dim)
 
     criterion = nn.CosineEmbeddingLoss(0.1)
     return train_loader, model, criterion

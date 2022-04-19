@@ -4,14 +4,14 @@ import torchvision.models as models
 
 class Im2Recipe(nn.Module):
 
-    def __init__(self):
+    def __init__(self, embed_dim):
         super(Im2Recipe, self).__init__()
 
         # Image model
         cnn = models.resnet50(pretrained=True)
         # 2048 is featureDim of input of last fc
         # hard-coding 1024 as embedding dim but can change later
-        cnn.fc = nn.Linear(2048, 1024)
+        cnn.fc = nn.Linear(2048, embed_dim)
         self.image_model = cnn
 
         # TODO: Initialize recipe models
