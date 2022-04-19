@@ -17,7 +17,7 @@ class Im2Recipe(nn.Module):
         # TODO: Initialize recipe models
 
     def forward(self, x):
-        out_image = self.image_model(x)
+        out_image = self.image_model(x[0])
         # TODO: Add recipe outputs
         return out_image, None
 

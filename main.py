@@ -80,9 +80,10 @@ def train(epoch, data_loader, model, optimizer, criterion):
 
     for idx, (data, target) in enumerate(data_loader):
         start = time.time()
+        target = target[0]
 
         if torch.cuda.is_available():
-            data = data.cuda()
+            data = [data[i].cuda() for i in range(len(data))]
             target = target.cuda()
 
         #############################################################################
@@ -128,9 +129,10 @@ def validate(epoch, val_loader, model, criterion):
     # evaluation loop
     for idx, (data, target) in enumerate(val_loader):
         start = time.time()
+        target = target[0]
 
         if torch.cuda.is_available():
-            data = data.cuda()
+            data = [data[i].cuda() for i in range(len(data))]
             target = target.cuda()
         #############################################################################
         # TODO: Complete the body of training loop                                  #
@@ -183,6 +185,7 @@ def adjust_learning_rate(optimizer, epoch, args):
 
 
 def im2recipe():
+    # This is same setup from study
     transform_train = transforms.Compose([
         transforms.Resize(256),  # rescale the image keeping the original aspect ratio
         transforms.CenterCrop(256),  # we get only the center of that rescaled
