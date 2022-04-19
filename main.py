@@ -80,7 +80,8 @@ def train(epoch, data_loader, model, optimizer, criterion):
 
     for idx, (data, target) in enumerate(data_loader):
         start = time.time()
-        target = target[0]
+        # use index 0 if criterion is CosineSimilarity, index 1 for image class
+        target = target[1]
 
         if torch.cuda.is_available():
             data = [data[i].cuda() for i in range(len(data))]
@@ -96,7 +97,8 @@ def train(epoch, data_loader, model, optimizer, criterion):
         # https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html#optimizing-the-model-parameters
         out, _ = model(data)
         # TODO: replace first out with im_out, replace second out with recipe_out
-        loss = criterion(out, out, target)
+        # loss = criterion(out, out, target)
+        loss = criterion(out, target)
 
         optimizer.zero_grad()
         loss.backward()
@@ -129,7 +131,7 @@ def validate(epoch, val_loader, model, criterion):
     # evaluation loop
     for idx, (data, target) in enumerate(val_loader):
         start = time.time()
-        target = target[0]
+        target = target[1]
 
         if torch.cuda.is_available():
             data = [data[i].cuda() for i in range(len(data))]
@@ -141,7 +143,8 @@ def validate(epoch, val_loader, model, criterion):
         with torch.no_grad():
             out, _ = model(data)
             # TODO: replace first out with im_out, replace second out with recipe_out
-            loss = criterion(out, out, target)
+            # loss = criterion(out, out, target)
+            loss = criterion(out, target)
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -197,11 +200,15 @@ def im2recipe():
     image_loader = ImageLoader('images', transform_train, data_path='data', partition='test')
     num_images = len(image_loader)
     train_loader = torch.utils.data.DataLoader(
-        image_loader, batch_size=args.batch_size, sampler=np.arange(int(0.01*num_images)))
+        image_loader, batch_size=args.batch_size, sampler=np.arange(int(0.1*num_images)))
 
-    model = Im2Recipe(args.embed_dim)
+    model = Im2Recipe(args.embed_dim, args.num_classes)
 
-    criterion = nn.CosineEmbeddingLoss(0.1)
+    # criterion = nn.CosineEmbeddingLoss(0.1)
+    # found this in other impl
+    weights = torch.ones(args.num_classes)
+    weights[0] = 0
+    criterion = nn.CrossEntropyLoss(weight=weights)
     return train_loader, model, criterion
 
 
