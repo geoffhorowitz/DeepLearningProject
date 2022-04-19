@@ -1,0 +1,33 @@
+Train:
+  batch_size: 160
+  learning_rate: 0.05
+  reg: 0.00005
+  epochs: 1
+  steps: [6, 8]
+  warmup: 0
+  momentum: 0.9
+
+network:
+  model: im2recipe
+
+data:
+  data_path: '../../../../../../../../Desktop/DL/'
+  maxlen: 20
+  vocab: 'vocab.txt'
+  save_best: False
+
+lstm:
+  #embDim: 1024
+  #nRNNs: 1
+  #srnnDim: 1024
+  irnnDim: 300
+  #imfeatDim: 2048
+  #stDim: 1024
+  ingrW2VDim: 300 # vocab size 30167 x 300 embedded
+  #maxSeqlen: 20
+  #maxIngrs: 20
+  #maxImgs: 5
+  #numClasses: 1048
+  #preModel: 'resNet50'
+  #semantic_reg: True
+  ingrW2V: '../../../../../../../../Desktop/DL/unpacked/vocab.bin'

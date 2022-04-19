@@ -6,6 +6,11 @@ dependencies:
   - matplotlib
   - pyyaml=5.4.1
   - pillow
+  - word2vec
+  - tqdm
   - pip
   pip:
     - lmdb
+    - torch
+    - torchvision
+    #- torchtext

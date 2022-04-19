@@ -1,3 +1,22 @@
+"""
+@article{marin2019learning,
+  title = {Recipe1M+: A Dataset for Learning Cross-Modal Embeddings for Cooking Recipes and Food Images},
+  author = {Marin, Javier and Biswas, Aritro and Ofli, Ferda and Hynes, Nicholas and
+  Salvador, Amaia and Aytar, Yusuf and Weber, Ingmar and Torralba, Antonio},
+  journal = {{IEEE} Trans. Pattern Anal. Mach. Intell.},
+  year = {2019}
+}
+
+@inproceedings{salvador2017learning,
+  title={Learning Cross-modal Embeddings for Cooking Recipes and Food Images},
+  author={Salvador, Amaia and Hynes, Nicholas and Aytar, Yusuf and Marin, Javier and
+          Ofli, Ferda and Weber, Ingmar and Torralba, Antonio},
+  booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition},
+  year={2017}
+}
+-----do not edit anything above this line---
+"""
+
 import json
 import numpy as np
 import pickle
