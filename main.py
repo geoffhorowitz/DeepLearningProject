@@ -38,7 +38,7 @@ from data_loader import ImageLoader
 from models import Im2Recipe
 
 parser = argparse.ArgumentParser(description='CS7643 Assignment-2 Part 2')
-parser.add_argument('--config', default='./config.yaml')
+parser.add_argument('--config', default='configs/config_fullmodel.yaml')
 
 
 class AverageMeter(object):
@@ -197,12 +197,12 @@ def im2recipe():
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-    image_loader = ImageLoader('images', transform_train, data_path='data', partition='test')
+    image_loader = ImageLoader('images', transform_train, data_path=args.data_path, partition='test')
     num_images = len(image_loader)
     train_loader = torch.utils.data.DataLoader(
         image_loader, batch_size=args.batch_size, sampler=np.arange(int(0.1*num_images)))
 
-    model = Im2Recipe(args.embed_dim, args.num_classes)
+    model = Im2Recipe(args)
 
     # criterion = nn.CosineEmbeddingLoss(0.1)
     # found this in other impl
@@ -311,7 +311,7 @@ def main():
     global args
     args = parser.parse_args()
     with open(args.config) as f:
-        config = yaml.load(f)
+        config = yaml.load(f, Loader=yaml.Loader)
 
     for key in config:
         for k, v in config[key].items():
