@@ -109,7 +109,7 @@ class IngredModel(nn.Module):
         #output_unpacked, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first=True, enforce_sorted=False)
         #out = output_unpacked[:, -1, :]
 
-        return out
+        return out[:, -1, :]
 
 
 class RecipeModel_ref(nn.Module):
@@ -182,4 +182,4 @@ class RecipeModel(nn.Module):
         #output_unpacked, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first=True, enforce_sorted=False)
         #out = output_unpacked[:, -1, :]
 
-        return out
+        return out[:, -1, :]
