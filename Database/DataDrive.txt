@@ -1,1 +1,6 @@
 https://gatech.box.com/s/ms8tpnr0b8md8879wgnoeqsjtktbkprm
+
+#!wget https://gatech.app.box.com/s/ms8tpnr0b8md8879wgnoeqsjtktbkprm/file/942355004376 -o recipes_with_nutritional_info.json
+!wget https://gatech.app.box.com/s/ms8tpnr0b8md8879wgnoeqsjtktbkprm/file/942356838740 -o Readme.md
+!wget https://gatech.app.box.com/s/ms8tpnr0b8md8879wgnoeqsjtktbkprm/file/942361088055 -o test.tar
+!wget https://gatech.app.box.com/s/ms8tpnr0b8md8879wgnoeqsjtktbkprm/file/942355532933 -o vocab.bin.gz

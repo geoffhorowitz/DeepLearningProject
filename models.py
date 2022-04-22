@@ -33,7 +33,7 @@ class Im2Recipe(nn.Module):
         recipe_output = self.recipe_model(x)
         print(ingred_output.size())
         print(recipe_output.size())
-        out_recipe = torch.cat((recipe_output, ingred_output), 2)
+        out_recipe = torch.cat((recipe_output, ingred_output), 1)
         out_recipe = self.recipe_tanh(self.recipe_linear(out_recipe))
         out_recipe = self.recipe_norm(out_recipe)
 
