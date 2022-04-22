@@ -1,6 +1,6 @@
 Train:
   batch_size: 128
-  learning_rate: 0.05
+  learning_rate: 0.001
   reg: 0.00005
   epochs: 15
   steps: [6, 8]
@@ -13,4 +13,14 @@ network:
   model: im2recipe
 
 data:
+  data_path: 'data'
   save_best: True
+
+ingredient_lstm:
+  ingredient_lstm_dim: 300
+  ingredient_embedding_dim: 300 # vocab size 30167 x 300 embedded
+  ingredient_w2v_path: 'data/vocab.bin'
+
+recipe_lstm:
+  recipe_lstm_dim: 1024
+  recipe_embedding_dim: 1024

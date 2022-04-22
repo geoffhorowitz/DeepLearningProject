@@ -15,13 +15,11 @@ class Im2Recipe(nn.Module):
         # Image model
         cnn = models.resnet50(pretrained=True)
         # 2048 is featureDim of input of last fc
-        # hard-coding 1024 as embedding dim but can change later
         cnn.fc = nn.Linear(2048, args.embed_dim)
         self.image_model = cnn
-        self.relu = nn.ReLU()
-        self.class_linear = nn.Linear(args.embed_dim, args.num_classes)
+        # self.relu = nn.ReLU()
+        # self.class_linear = nn.Linear(args.embed_dim, args.num_classes)
 
-        # TODO: Initialize recipe models
         self.recipe_linear = nn.Linear(args.ingredient_embedding_dim*2 + args.recipe_embedding_dim, args.embed_dim)
         self.recipe_tanh = nn.Tanh()
         self.recipe_norm = nn.LayerNorm(args.embed_dim)
@@ -29,9 +27,8 @@ class Im2Recipe(nn.Module):
         self.recipe_model = RecipeModel(args)
 
     def forward(self, x):
-        out_image = self.class_linear(self.relu(self.image_model(x[0])))
+        out_image = self.image_model(x[0])
 
-        # TODO: Add recipe outputs
         ingred_output = self.ingred_model(x)
         recipe_output = self.recipe_model(x)
         print(ingred_output.size())
