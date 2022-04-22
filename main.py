@@ -202,8 +202,14 @@ def im2recipe():
     ])
     image_loader = ImageLoader('images', transform_train, data_path=args.data_path, partition='test')
     num_images = len(image_loader)
+    indexes = np.arange(num_images)
+    np.random.shuffle(indexes)
+    train_cutoff = int(args.train_percent * num_images)
+    val_cutoff = train_cutoff + int(args.val_percent * num_images)
     train_loader = torch.utils.data.DataLoader(
-        image_loader, batch_size=args.batch_size, sampler=np.arange(int(0.1*num_images)))
+        image_loader, batch_size=args.batch_size, sampler=indexes[:train_cutoff])
+    val_loader = torch.utils.data.DataLoader(
+        image_loader, batch_size=args.batch_size, sampler=indexes[train_cutoff:val_cutoff])
 
     model = Im2Recipe(args)
 
@@ -212,7 +218,7 @@ def im2recipe():
     # weights = torch.ones(args.num_classes)
     # weights[0] = 0
     # criterion = nn.CrossEntropyLoss(weight=weights)
-    return train_loader, model, criterion
+    return (train_loader, val_loader), model, criterion
 
 
 def recipe2im():
@@ -230,7 +236,7 @@ def main():
         for k, v in config[key].items():
             setattr(args, k, v)
 
-    train_loader, model, criterion = im2recipe() if args.model == 'im2recipe' else recipe2im()
+    loaders, model, criterion = im2recipe() if args.model == 'im2recipe' else recipe2im()
     if torch.cuda.is_available():
         model = model.cuda()
 
@@ -242,10 +248,9 @@ def main():
         # adjust_learning_rate(optimizer, epoch, args)
 
         # train loop
-        train(epoch, train_loader, model, optimizer, criterion)
+        train(epoch, loaders[0], model, optimizer, criterion)
 
-        # TODO: validation loop, change back to test_loader
-        loss = validate(epoch, train_loader, model, criterion)
+        loss = validate(epoch, loaders[1], model, criterion)
 
         if loss < best:
             best = loss

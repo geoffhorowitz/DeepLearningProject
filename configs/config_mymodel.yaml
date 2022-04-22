@@ -8,6 +8,8 @@ Train:
   momentum: 0.9
   embed_dim: 1024
   num_classes: 1048
+  train_percent: 0.6
+  val_percent: 0.2
 
 network:
   model: im2recipe
