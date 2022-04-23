@@ -200,7 +200,7 @@ def im2recipe():
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-    image_loader = ImageLoader('images', transform_train, data_path=args.data_path, partition='test')
+    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='test')
     num_images = len(image_loader)
     indexes = np.arange(num_images)
     np.random.shuffle(indexes)

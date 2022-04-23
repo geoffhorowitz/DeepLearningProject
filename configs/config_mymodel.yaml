@@ -16,6 +16,7 @@ network:
 
 data:
   data_path: 'data'
+  image_path: 'images'
   save_best: True
 
 ingredient_lstm:
