@@ -1,0 +1,10 @@
+numpy
+matplotlib
+pyyaml
+pillow
+word2vec
+tqdm
+lmdb
+torch
+torchvision
+torchtext
