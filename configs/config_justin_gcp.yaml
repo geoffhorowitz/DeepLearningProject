@@ -1,6 +1,6 @@
 Train:
-  batch_size: 4
-  learning_rate: 0.05
+  batch_size: 16
+  learning_rate: 0.0001
   reg: 0.00005
   epochs: 15
   steps: [6, 8]
@@ -8,21 +8,26 @@ Train:
   momentum: 0.9
   embed_dim: 1024
   num_classes: 1048
-  train_percent: 0.6
-  val_percent: 0.2
+  train_percent: 0.1
+  val_percent: 0.1
+  semantic_reg: False
+  cos_weight: 0.98
+  image_weight: 0.01
+  recipe_weight: 0.01
+  workers: 4
 
 network:
   model: im2recipe
 
 data:
-  data_path: '../../../../../../../Desktop/DL/'
-  image_path: '../../../../../../../Desktop/DL/test'
+  data_path: '../data'
+  image_path: '../images'
   save_best: True
 
 ingredient_lstm:
   ingredient_lstm_dim: 300
   ingredient_embedding_dim: 300 # vocab size 30167 x 300 embedded
-  ingredient_w2v_path: '../../../../../../../Desktop/DL/unpacked/vocab.bin'
+  ingredient_w2v_path: '../data/vocab.bin'
 
 recipe_lstm:
   recipe_lstm_dim: 1024

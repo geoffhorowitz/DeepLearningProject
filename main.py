@@ -41,6 +41,12 @@ from models import Im2Recipe
 parser = argparse.ArgumentParser(description='CS7643 Assignment-2 Part 2')
 parser.add_argument('--config', default='configs/config_fullmodel.yaml')
 
+if not(torch.cuda.device_count()):
+    device = torch.device(*('cpu',0))
+else:
+    torch.cuda.manual_seed(1234)
+    device = torch.device(*('cuda',0))
+
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -75,6 +81,7 @@ class AverageMeter(object):
 
 
 def train(epoch, data_loader, model, optimizer, criterion):
+    print('Training')
     iter_time = AverageMeter()
     losses = AverageMeter()
     # acc = AverageMeter()
@@ -82,11 +89,8 @@ def train(epoch, data_loader, model, optimizer, criterion):
     for idx, (data, target) in enumerate(data_loader):
         start = time.time()
         # use index 0 if criterion is CosineSimilarity, index 1 for image class
-        target = target[0]
-
-        if torch.cuda.is_available():
-            data = [data[i].cuda() for i in range(len(data))]
-            target = target.cuda()
+        data = [data[i].to(device) for i in range(len(data))]
+        target = [target[i].to(device) for i in range(len(target))]
 
         #############################################################################
         # TODO: Complete the body of training loop                                  #
@@ -96,8 +100,14 @@ def train(epoch, data_loader, model, optimizer, criterion):
         #############################################################################
         # Referenced
         # https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html#optimizing-the-model-parameters
-        out_image, out_recipe = model(data)
-        loss = criterion(out_image, out_recipe, target)
+        out_image, out_recipe, out_image_reg, out_recipe_reg = model(data)
+        if args.semantic_reg:
+            cos_loss = criterion[0](out_image, out_recipe, target[0])
+            image_loss = criterion[1](out_image_reg, target[1])
+            recipe_loss = criterion[1](out_recipe_reg, target[2])
+            loss = args.cos_weight * cos_loss + args.image_weight * image_loss + args.recipe_weight * recipe_loss
+        else:
+            loss = criterion[0](out_image, out_recipe, target[0])
 
         optimizer.zero_grad()
         loss.backward()
@@ -124,6 +134,7 @@ def train(epoch, data_loader, model, optimizer, criterion):
 
 
 def validate(epoch, val_loader, model, criterion):
+    print('Validation')
     iter_time = AverageMeter()
     losses = AverageMeter()
     # acc = AverageMeter()
@@ -133,18 +144,22 @@ def validate(epoch, val_loader, model, criterion):
     # evaluation loop
     for idx, (data, target) in enumerate(val_loader):
         start = time.time()
-        target = target[0]
+        data = [data[i].to(device) for i in range(len(data))]
+        target = [target[i].to(device) for i in range(len(target))]
 
-        if torch.cuda.is_available():
-            data = [data[i].cuda() for i in range(len(data))]
-            target = target.cuda()
         #############################################################################
         # TODO: Complete the body of training loop                                  #
         #       HINT: torch.no_grad()                                               #
         #############################################################################
         with torch.no_grad():
-            out_image, out_recipe = model(data)
-            loss = criterion(out_image, out_recipe, target)
+            out_image, out_recipe, out_image_reg, out_recipe_reg = model(data)
+            if args.semantic_reg:
+                cos_loss = criterion[0](out_image, out_recipe, target[0])
+                image_loss = criterion[1](out_image_reg, target[1])
+                recipe_loss = criterion[1](out_recipe_reg, target[2])
+                loss = args.cos_weight * cos_loss + args.image_weight * image_loss + args.recipe_weight * recipe_loss
+            else:
+                loss = criterion[0](out_image, out_recipe, target[0])
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -162,7 +177,9 @@ def validate(epoch, val_loader, model, criterion):
         iter_time.update(time.time() - start)
         if idx % 10 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
-                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t')
+                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t'
+                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  )
                   .format(epoch, idx, len(val_loader), iter_time=iter_time, loss=losses
                           # , top1=acc
                           ))
@@ -200,25 +217,53 @@ def im2recipe():
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='test')
+    transform_val = transforms.Compose([
+        transforms.Resize(256), # rescale the image keeping the original aspect ratio
+        transforms.CenterCrop(224), # we get only the center of that rescaled
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train')
     num_images = len(image_loader)
     indexes = np.arange(num_images)
-    np.random.shuffle(indexes)
+    # np.random.shuffle(indexes)
     train_cutoff = int(args.train_percent * num_images)
     val_cutoff = train_cutoff + int(args.val_percent * num_images)
-    train_loader = torch.utils.data.DataLoader(
-        image_loader, batch_size=args.batch_size, sampler=indexes[:train_cutoff])
-    val_loader = torch.utils.data.DataLoader(
-        image_loader, batch_size=args.batch_size, sampler=indexes[train_cutoff:val_cutoff])
+    if torch.cuda.is_available():
+        train_loader = torch.utils.data.DataLoader(
+            image_loader, batch_size=args.batch_size, sampler=indexes[:train_cutoff],
+            num_workers=args.workers, pin_memory=True)
+        val_loader = torch.utils.data.DataLoader(
+            ImageLoader(
+                args.image_path,
+                transform_val,
+                data_path=args.data_path,
+                partition='val'), batch_size=args.batch_size, sampler=indexes[train_cutoff:val_cutoff],
+            num_workers=args.workers, pin_memory=True)
+    else:
+        train_loader = torch.utils.data.DataLoader(
+            image_loader, batch_size=args.batch_size, sampler=indexes[:train_cutoff])
+        val_loader = torch.utils.data.DataLoader(
+            ImageLoader(
+                args.image_path,
+                transform_val,
+                data_path=args.data_path,
+                partition='val'), batch_size=args.batch_size, sampler=indexes[train_cutoff:val_cutoff])
 
     model = Im2Recipe(args)
 
-    criterion = nn.CosineEmbeddingLoss(0.1)
+    cos_criterion = nn.CosineEmbeddingLoss(0.1).to(device)
     # found this in other impl
-    # weights = torch.ones(args.num_classes)
-    # weights[0] = 0
-    # criterion = nn.CrossEntropyLoss(weight=weights)
-    return (train_loader, val_loader), model, criterion
+    if args.semantic_reg:
+        # weights = torch.ones(args.num_classes)
+        # weights[0] = 0
+        # this causes nan to be thrown
+        # weights_class = torch.Tensor(args.num_classes).fill_(1)
+        # weights_class[0] = 0  # the background class is set to 0, i.e. ignore
+        entropy_criterion = nn.CrossEntropyLoss().to(device)
+    else:
+        entropy_criterion = None
+    return (train_loader, val_loader), model, (cos_criterion, entropy_criterion)
 
 
 def recipe2im():
@@ -237,8 +282,9 @@ def main():
             setattr(args, k, v)
 
     loaders, model, criterion = im2recipe() if args.model == 'im2recipe' else recipe2im()
-    if torch.cuda.is_available():
-        model = model.cuda()
+    print(torch.cuda.is_available())
+    model.frozen_image_model = torch.nn.DataParallel(model.frozen_image_model)
+    model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     best = math.inf

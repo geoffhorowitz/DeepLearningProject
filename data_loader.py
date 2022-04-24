@@ -50,10 +50,12 @@ class ImageLoader(data.Dataset):
         else:
             self.partition = partition
 
-        self.env = lmdb.open(os.path.join(data_path, partition + '_lmdb'), max_readers=1, readonly=True, lock=False,
+        # can change back to partition if weird behavior
+        file_directory = 'test'
+        self.env = lmdb.open(os.path.join(data_path, file_directory + '_lmdb'), max_readers=1, readonly=True, lock=False,
                              readahead=False, meminit=False)
 
-        with open(os.path.join(data_path, partition + '_keys.pkl'), 'rb') as f:
+        with open(os.path.join(data_path, file_directory + '_keys.pkl'), 'rb') as f:
             self.ids = pickle.load(f)
 
         self.square = square
@@ -166,7 +168,7 @@ class ImageLoader(data.Dataset):
         #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class, img_id, rec_id]
         #     else:
         #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_id, rec_id]
-        return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class, img_id, rec_id]
+        return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class]
 
     def __len__(self):
         return len(self.ids)
