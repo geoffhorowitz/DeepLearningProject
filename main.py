@@ -103,12 +103,8 @@ def train(epoch, data_loader, model, optimizer, criterion):
         out_image, out_recipe, out_image_reg, out_recipe_reg = model(data)
         if args.semantic_reg:
             cos_loss = criterion[0](out_image, out_recipe, target[0])
-            print((target[1], target[2]))
             image_loss = criterion[1](out_image_reg, target[1])
             recipe_loss = criterion[1](out_recipe_reg, target[2])
-            print(cos_loss)
-            print(image_loss)
-            print(recipe_loss)
             loss = args.cos_weight * cos_loss + args.image_weight * image_loss + args.recipe_weight * recipe_loss
         else:
             loss = criterion[0](out_image, out_recipe, target[0])
