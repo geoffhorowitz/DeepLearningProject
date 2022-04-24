@@ -1,8 +1,8 @@
 Train:
-  batch_size: 16
+  batch_size: 128
   learning_rate: 0.0001
   reg: 0.00005
-  epochs: 15
+  epochs: 10
   steps: [6, 8]
   warmup: 0
   momentum: 0.9
@@ -14,7 +14,7 @@ Train:
   cos_weight: 0.98
   image_weight: 0.01
   recipe_weight: 0.01
-  workers: 4
+  workers: 8
 
 network:
   model: im2recipe
