@@ -1,5 +1,5 @@
 Train:
-  batch_size: 128
+  batch_size: 4
   learning_rate: 0.05
   reg: 0.00005
   epochs: 15
@@ -16,9 +16,8 @@ network:
 
 data:
   data_path: '../../../../../../../Desktop/DL/'
-  maxlen: 20
-  vocab: 'vocab.txt'
-  save_best: False
+  image_path: '../../../../../../../Desktop/DL/test'
+  save_best: True
 
 ingredient_lstm:
   ingredient_lstm_dim: 300
