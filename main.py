@@ -80,7 +80,7 @@ class AverageMeter(object):
 #     return acc
 
 
-def train(epoch, data_loader, model, optimizer, criterion):
+def train(epoch, data_loader, model, optimizer, criterion, args):
     print('Training')
     iter_time = AverageMeter()
     losses = AverageMeter()
@@ -124,16 +124,17 @@ def train(epoch, data_loader, model, optimizer, criterion):
         iter_time.update(time.time() - start)
         if idx % 10 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
-                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t'
-                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f} avg)\t'
+                   'Loss {loss.val:.4f} ({loss.avg:.4f avg})\t'
                    # 'Prec @1 {top1.val:.4f} ({top1.avg:.4f})\t'
                    )
                   .format(epoch, idx, len(data_loader), iter_time=iter_time, loss=losses
                           # , top1=acc
                           ))
+        return losses.avg
 
 
-def validate(epoch, val_loader, model, criterion):
+def validate(epoch, val_loader, model, criterion, args):
     print('Validation')
     iter_time = AverageMeter()
     losses = AverageMeter()
@@ -207,7 +208,7 @@ def validate(epoch, val_loader, model, criterion):
 #         param_group['lr'] = lr
 
 
-def im2recipe():
+def im2recipe(args):
     # This is same setup from study
     transform_train = transforms.Compose([
         transforms.Resize(256),  # rescale the image keeping the original aspect ratio
@@ -266,7 +267,7 @@ def im2recipe():
     return (train_loader, val_loader), model, (cos_criterion, entropy_criterion)
 
 
-def recipe2im():
+def recipe2im(args):
     # TODO
     return None, None, None
 
@@ -281,7 +282,7 @@ def main():
         for k, v in config[key].items():
             setattr(args, k, v)
 
-    loaders, model, criterion = im2recipe() if args.model == 'im2recipe' else recipe2im()
+    loaders, model, criterion = im2recipe(args) if args.model == 'im2recipe' else recipe2im(args)
     print(torch.cuda.is_available())
     model.frozen_image_model = torch.nn.DataParallel(model.frozen_image_model)
     model.to(device)
@@ -294,12 +295,12 @@ def main():
         # adjust_learning_rate(optimizer, epoch, args)
 
         # train loop
-        train(epoch, loaders[0], model, optimizer, criterion)
+        train_loss = train(epoch, loaders[0], model, optimizer, criterion, args)
 
-        loss = validate(epoch, loaders[1], model, criterion)
+        val_loss = validate(epoch, loaders[1], model, criterion, args)
 
-        if loss < best:
-            best = loss
+        if val_loss < best:
+            best = val_loss
             # best_cm = cm
             best_model = copy.deepcopy(model)
 
