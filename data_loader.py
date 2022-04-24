@@ -50,10 +50,12 @@ class ImageLoader(data.Dataset):
         else:
             self.partition = partition
 
-        self.env = lmdb.open(os.path.join(data_path, partition + '_lmdb'), max_readers=1, readonly=True, lock=False,
+        # can change back to partition if weird behavior
+        file_directory = 'test'
+        self.env = lmdb.open(os.path.join(data_path, file_directory + '_lmdb'), max_readers=1, readonly=True, lock=False,
                              readahead=False, meminit=False)
 
-        with open(os.path.join(data_path, partition + '_keys.pkl'), 'rb') as f:
+        with open(os.path.join(data_path, file_directory + '_keys.pkl'), 'rb') as f:
             self.ids = pickle.load(f)
 
         self.square = square
