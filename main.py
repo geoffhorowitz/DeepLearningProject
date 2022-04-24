@@ -41,6 +41,12 @@ from models import Im2Recipe
 parser = argparse.ArgumentParser(description='CS7643 Assignment-2 Part 2')
 parser.add_argument('--config', default='configs/config_fullmodel.yaml')
 
+if not(torch.cuda.device_count()):
+    device = torch.device(*('cpu',0))
+else:
+    torch.cuda.manual_seed(1234)
+    device = torch.device(*('cuda',0))
+
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -75,6 +81,7 @@ class AverageMeter(object):
 
 
 def train(epoch, data_loader, model, optimizer, criterion):
+    print('Training')
     iter_time = AverageMeter()
     losses = AverageMeter()
     # acc = AverageMeter()
@@ -82,11 +89,8 @@ def train(epoch, data_loader, model, optimizer, criterion):
     for idx, (data, target) in enumerate(data_loader):
         start = time.time()
         # use index 0 if criterion is CosineSimilarity, index 1 for image class
-        target = target[0]
-
-        if torch.cuda.is_available():
-            data = [data[i].cuda() for i in range(len(data))]
-            target = target.cuda()
+        target = target[0].to(device)
+        data = [data[i].to(device) for i in range(len(data))]
 
         #############################################################################
         # TODO: Complete the body of training loop                                  #
@@ -124,6 +128,7 @@ def train(epoch, data_loader, model, optimizer, criterion):
 
 
 def validate(epoch, val_loader, model, criterion):
+    print('Validation')
     iter_time = AverageMeter()
     losses = AverageMeter()
     # acc = AverageMeter()
@@ -133,11 +138,9 @@ def validate(epoch, val_loader, model, criterion):
     # evaluation loop
     for idx, (data, target) in enumerate(val_loader):
         start = time.time()
-        target = target[0]
+        target = target[0].to(device)
+        data = [data[i].to(device) for i in range(len(data))]
 
-        if torch.cuda.is_available():
-            data = [data[i].cuda() for i in range(len(data))]
-            target = target.cuda()
         #############################################################################
         # TODO: Complete the body of training loop                                  #
         #       HINT: torch.no_grad()                                               #
@@ -162,7 +165,9 @@ def validate(epoch, val_loader, model, criterion):
         iter_time.update(time.time() - start)
         if idx % 10 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
-                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t')
+                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t'
+                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  )
                   .format(epoch, idx, len(val_loader), iter_time=iter_time, loss=losses
                           # , top1=acc
                           ))
@@ -201,8 +206,8 @@ def im2recipe():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     transform_val = transforms.Compose([
-        transforms.Resize(256),  # rescale the image keeping the original aspect ratio
-        transforms.CenterCrop(224),  # we get only the center of that rescaled
+        transforms.Resize(256), # rescale the image keeping the original aspect ratio
+        transforms.CenterCrop(224), # we get only the center of that rescaled
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
@@ -223,7 +228,7 @@ def im2recipe():
 
     model = Im2Recipe(args)
 
-    criterion = nn.CosineEmbeddingLoss(0.1)
+    criterion = nn.CosineEmbeddingLoss(0.1).to(device)
     # found this in other impl
     # weights = torch.ones(args.num_classes)
     # weights[0] = 0
@@ -247,8 +252,9 @@ def main():
             setattr(args, k, v)
 
     loaders, model, criterion = im2recipe() if args.model == 'im2recipe' else recipe2im()
-    if torch.cuda.is_available():
-        model = model.cuda()
+    print(torch.cuda.is_available())
+    model.frozen_image_model = torch.nn.DataParallel(model.frozen_image_model)
+    model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     best = math.inf
