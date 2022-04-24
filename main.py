@@ -200,16 +200,26 @@ def im2recipe():
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='test')
+    transform_val = transforms.Compose([
+        transforms.Resize(256),  # rescale the image keeping the original aspect ratio
+        transforms.CenterCrop(224),  # we get only the center of that rescaled
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train')
     num_images = len(image_loader)
     indexes = np.arange(num_images)
-    np.random.shuffle(indexes)
+    # np.random.shuffle(indexes)
     train_cutoff = int(args.train_percent * num_images)
     val_cutoff = train_cutoff + int(args.val_percent * num_images)
     train_loader = torch.utils.data.DataLoader(
         image_loader, batch_size=args.batch_size, sampler=indexes[:train_cutoff])
     val_loader = torch.utils.data.DataLoader(
-        image_loader, batch_size=args.batch_size, sampler=indexes[train_cutoff:val_cutoff])
+        ImageLoader(
+            args.image_path,
+            transform_val,
+            data_path=args.data_path,
+            partition='val'), batch_size=args.batch_size, sampler=indexes[train_cutoff:val_cutoff])
 
     model = Im2Recipe(args)
 
