@@ -36,6 +36,10 @@ class Im2Recipe(nn.Module):
         self.recipe_norm = nn.LayerNorm(args.embed_dim)
         self.ingred_model = IngredModel(args)
         self.recipe_model = RecipeModel(args)
+        if args.semantic_reg:
+            self.semantic_layer = nn.Linear(args.embed_dim, args.num_classes)
+        else:
+            self.semantic_layer = None
 
     def forward(self, x):
         out_image = self.frozen_image_model(x[0])
@@ -48,5 +52,10 @@ class Im2Recipe(nn.Module):
         out_recipe = torch.cat((recipe_output, ingred_output), 1)
         out_recipe = self.recipe_tanh(self.recipe_linear(out_recipe))
         out_recipe = self.recipe_norm(out_recipe)
+        if self.semantic_layer is not None:
+            out_image_reg = self.semantic_layer(out_image)
+            out_recipe_reg = self.semantic_layer(out_recipe)
+        else:
+            out_image_reg = out_recipe_reg = None
 
-        return out_image, out_recipe
+        return out_image, out_recipe, out_image_reg, out_recipe_reg

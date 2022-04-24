@@ -89,8 +89,8 @@ def train(epoch, data_loader, model, optimizer, criterion):
     for idx, (data, target) in enumerate(data_loader):
         start = time.time()
         # use index 0 if criterion is CosineSimilarity, index 1 for image class
-        target = target[0].to(device)
         data = [data[i].to(device) for i in range(len(data))]
+        target = [target[i].to(device) for i in range(len(target))]
 
         #############################################################################
         # TODO: Complete the body of training loop                                  #
@@ -100,8 +100,18 @@ def train(epoch, data_loader, model, optimizer, criterion):
         #############################################################################
         # Referenced
         # https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html#optimizing-the-model-parameters
-        out_image, out_recipe = model(data)
-        loss = criterion(out_image, out_recipe, target)
+        out_image, out_recipe, out_image_reg, out_recipe_reg = model(data)
+        if args.semantic_reg:
+            cos_loss = criterion[0](out_image, out_recipe, target[0])
+            print((target[1], target[2]))
+            image_loss = criterion[1](out_image_reg, target[1])
+            recipe_loss = criterion[1](out_recipe_reg, target[2])
+            print(cos_loss)
+            print(image_loss)
+            print(recipe_loss)
+            loss = args.cos_weight * cos_loss + args.image_weight * image_loss + args.recipe_weight * recipe_loss
+        else:
+            loss = criterion[0](out_image, out_recipe, target[0])
 
         optimizer.zero_grad()
         loss.backward()
@@ -138,16 +148,22 @@ def validate(epoch, val_loader, model, criterion):
     # evaluation loop
     for idx, (data, target) in enumerate(val_loader):
         start = time.time()
-        target = target[0].to(device)
         data = [data[i].to(device) for i in range(len(data))]
+        target = [target[i].to(device) for i in range(len(target))]
 
         #############################################################################
         # TODO: Complete the body of training loop                                  #
         #       HINT: torch.no_grad()                                               #
         #############################################################################
         with torch.no_grad():
-            out_image, out_recipe = model(data)
-            loss = criterion(out_image, out_recipe, target)
+            out_image, out_recipe, out_image_reg, out_recipe_reg = model(data)
+            if args.semantic_reg:
+                cos_loss = criterion[0](out_image, out_recipe, target[0])
+                image_loss = criterion[1](out_image_reg, target[1])
+                recipe_loss = criterion[1](out_recipe_reg, target[2])
+                loss = args.cos_weight * cos_loss + args.image_weight * image_loss + args.recipe_weight * recipe_loss
+            else:
+                loss = criterion[0](out_image, out_recipe, target[0])
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -228,12 +244,18 @@ def im2recipe():
 
     model = Im2Recipe(args)
 
-    criterion = nn.CosineEmbeddingLoss(0.1).to(device)
+    cos_criterion = nn.CosineEmbeddingLoss(0.1).to(device)
     # found this in other impl
-    # weights = torch.ones(args.num_classes)
-    # weights[0] = 0
-    # criterion = nn.CrossEntropyLoss(weight=weights)
-    return (train_loader, val_loader), model, criterion
+    if args.semantic_reg:
+        # weights = torch.ones(args.num_classes)
+        # weights[0] = 0
+        # this causes nan to be thrown
+        # weights_class = torch.Tensor(args.num_classes).fill_(1)
+        # weights_class[0] = 0  # the background class is set to 0, i.e. ignore
+        entropy_criterion = nn.CrossEntropyLoss().to(device)
+    else:
+        entropy_criterion = None
+    return (train_loader, val_loader), model, (cos_criterion, entropy_criterion)
 
 
 def recipe2im():
