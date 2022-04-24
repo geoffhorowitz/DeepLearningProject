@@ -125,13 +125,13 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
         if idx % 10 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
                    'Time {iter_time.val:.3f} ({iter_time.avg:.3f} avg)\t'
-                   'Loss {loss.val:.4f} ({loss.avg:.4f avg})\t'
+                   'Loss {loss.val:.4f} ({loss.avg:.4f} avg)\t'
                    # 'Prec @1 {top1.val:.4f} ({top1.avg:.4f})\t'
                    )
                   .format(epoch, idx, len(data_loader), iter_time=iter_time, loss=losses
                           # , top1=acc
                           ))
-        return losses.avg
+    return losses.avg
 
 
 def validate(epoch, val_loader, model, criterion, args):
@@ -178,8 +178,8 @@ def validate(epoch, val_loader, model, criterion, args):
         iter_time.update(time.time() - start)
         if idx % 10 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
-                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t'
-                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f} avg)\t'
+                   'Loss {loss.val:.4f} ({loss.avg:.4f} avg)\t'
                   )
                   .format(epoch, idx, len(val_loader), iter_time=iter_time, loss=losses
                           # , top1=acc
