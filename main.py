@@ -164,7 +164,15 @@ def validate(epoch, val_loader, model, criterion, args):
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
-
+        if args.generate_metrics:
+            if idx = 0:
+                img_store = out_image.data.cpu().numpy()
+                recipe_store = out_recipe.data.cpu().numpy()
+                recipe_id_store = target[-1]
+            else:
+                img_store = np.concatenate(img_store, out_image.data.cpu().numpy())
+                recipe_store = np.concatenate(out_recipe, out_image.data.cpu().numpy())
+                recipe_id_store = np.concatenate(img_store, target[-1], axis=0)
         # batch_acc = accuracy(out, target)
 
         # update confusion matrix
@@ -178,8 +186,8 @@ def validate(epoch, val_loader, model, criterion, args):
         iter_time.update(time.time() - start)
         if idx % 10 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
-                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f} avg)\t'
-                   'Loss {loss.val:.4f} ({loss.avg:.4f} avg)\t'
+                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t'
+                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   )
                   .format(epoch, idx, len(val_loader), iter_time=iter_time, loss=losses
                           # , top1=acc
@@ -191,6 +199,22 @@ def validate(epoch, val_loader, model, criterion, args):
     #
     # print("* Prec @1: {top1.avg:.4f}".format(top1=acc))
     # return acc.avg, cm
+    if args.generate_metrics:
+        metric_store = {}
+        metric_store['image'] = image_store
+        metric_store['recipe'] = recipe_store
+        metric_store['recipe_id'] = recipe_id_store
+
+        import pickle
+        pickle_file = 'metric_store_{}.pkl'.format(epoch)
+        f=open(pickle_file, 'wb')
+        pickle.dump(metric_store, f)
+        f.close()
+        #return losses.avg, metric_store
+
+        from tune_model import generate_metrics
+        generate_metrics(args, pickle_file)
+
     return losses.avg
 
 

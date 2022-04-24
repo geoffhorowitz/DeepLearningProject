@@ -1,9 +1,11 @@
 import math
-
-import yaml
-import argparse
+import os, sys
+import random
 import time
 import copy
+import yaml
+import argparse
+import pickle
 
 import numpy as np
 import torch
@@ -23,18 +25,36 @@ from main import
 
 def main(model_inputs):
     default_dict = {
-        'encoder_emb_size': 64, #32 original
-        'encoder_hidden_size': 64,
-        'encoder_dropout': 0.1, #0.2 original
-
-        'decoder_emb_size': 32,
-        'decoder_hidden_size': 64,
-        'decoder_dropout': 0.1, #0.2 original
-
-        'learning_rate': 1e-2, # 1e-3 original
-        'model_type': "LSTM",
-        'epochs': 10,
-        'translate': False
+        #Train:
+        'batch_size': 100,
+        'learning_rate': 0.001,
+        'reg': 0.00005,
+        'epochs': 15,
+        'steps': [6, 8],
+        'warmup': 0,
+        'momentum': 0.9,
+        'embed_dim': 1024,
+        'num_classes': 1048,
+        'train_percent': 0.1,
+        'val_percent': 0.1,
+        'semantic_reg': False,
+        'cos_weight': 0.98,
+        'image_weight': 0.01,
+        'recipe_weight': 0.01,
+        'workers': 1,
+        #network:
+        'model': im2recipe,
+        #data:
+        'data_path': 'data',
+        'image_path': 'data/images',
+        'save_best': True,
+        #ingredient_lstm:
+        'ingredient_lstm_dim': 300,
+        'ingredient_embedding_dim': 300, # vocab size 30167 x 300 embedded
+        'ingredient_w2v_path': 'data/vocab.bin',
+        #recipe_lstm:
+        'recipe_lstm_dim': 1024,
+        'recipe_embedding_dim': 1024,
     }
 
     # LSTM
@@ -53,7 +73,7 @@ def main(model_inputs):
     }
 
 
-    runs_per_experiment = 3 # balance b/w trials and hyperparams to test
+    runs_per_experiment = 2 # balance b/w trials and hyperparams to test
 
     results_dict = {'defaults': default_dict}
 
@@ -73,9 +93,6 @@ def main(model_inputs):
             for k in range(runs_per_experiment):
                 input_dict = default_dict.copy()
                 input_dict[key] = exp_val
-
-                # additional argument contraints
-                input_dict['decoder_hidden_size'] = input_dict['encoder_hidden_size']
 
                 args = namedtuple("args", input_dict.keys())(*input_dict.values()) # to get it in the same dot callable format
 
@@ -155,6 +172,81 @@ def prepare(args):
 
     return loaders, model, criterion
 
+def generate_metrics(args, metric_store):
+    f = open(metric_store, "rb")
+    metric_store = pickle.load(f)
+    f.close()
+
+    img_vecs = metric_store['images']
+    instr_vecs = metric_store['recipe']
+    names = metric_store['recipe_id']
+
+    random.seed(1234)
+    type_embedding = 'images' if args.model == 'im2recipe' else 'recipe'
+
+    # Sort based on names to always pick same samples for medr
+    idxs = np.argsort(names)
+    names = names[idxs]
+
+    # Ranker
+    N = 1000
+    idxs = range(N)
+
+    glob_rank = []
+    glob_recall = {1:0.0,5:0.0,10:0.0}
+    for i in range(10):
+
+        ids = random.sample(range(0,len(names)), N)
+        im_sub = im_vecs[ids,:]
+        instr_sub = instr_vecs[ids,:]
+        ids_sub = names[ids]
+
+        # if params.embedding == 'image':
+        if type_embedding == 'image':
+            sims = np.dot(im_sub,instr_sub.T) # for im2recipe
+        else:
+            sims = np.dot(instr_sub,im_sub.T) # for recipe2im
+
+        med_rank = []
+        recall = {1:0.0,5:0.0,10:0.0}
+
+        for ii in idxs:
+
+            name = ids_sub[ii]
+            # get a column of similarities
+            sim = sims[ii,:]
+
+            # sort indices in descending order
+            sorting = np.argsort(sim)[::-1].tolist()
+
+            # find where the index of the pair sample ended up in the sorting
+            pos = sorting.index(ii)
+
+            if (pos+1) == 1:
+                recall[1]+=1
+            if (pos+1) <=5:
+                recall[5]+=1
+            if (pos+1)<=10:
+                recall[10]+=1
+
+            # store the position
+            med_rank.append(pos+1)
+
+        for i in recall.keys():
+            recall[i]=recall[i]/N
+
+        med = np.median(med_rank)
+        print("median", med)
+
+        for i in recall.keys():
+            glob_recall[i]+=recall[i]
+        glob_rank.append(med)
+
+    for i in glob_recall.keys():
+        glob_recall[i] = glob_recall[i]/10
+    print("Mean median", np.average(glob_rank))
+    print("Recall", glob_recall)
+
 def run(args, model_inputs=None):
     '''
     TODOs:
@@ -173,8 +265,8 @@ def run(args, model_inputs=None):
     val_perp_history = np.zeros(args.epochs)
 
     for epoch_idx in range(args.epochs):
-        train_loss, avg_train_loss = train(epoch, loaders[0], model, optimizer, criterion, args)
-        val_loss, avg_val_loss = validate(epoch, loaders[1], model, criterion, args)
+        avg_train_loss = train(epoch, loaders[0], model, optimizer, criterion, args)
+        avg_val_loss = validate(epoch, loaders[1], model, criterion, args)
 
         avg_train_loss = avg_train_loss.item()
         avg_val_loss = avg_val_loss.item()
