@@ -14,7 +14,7 @@ Train:
   cos_weight: 0.98
   image_weight: 0.01
   recipe_weight: 0.01
-  workers: 30
+  workers: 4
 
 network:
   model: im2recipe
