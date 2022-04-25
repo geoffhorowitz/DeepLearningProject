@@ -20,7 +20,6 @@ from data_loader import ImageLoader
 from models import Im2Recipe
 
 from plot_methods import plot_simple_learning_curve, plot_complex_learning_curve, plot_complexity_curve
-from main import
 
 
 def main(model_inputs):
@@ -173,11 +172,20 @@ def prepare(args):
     return loaders, model, criterion
 
 def generate_metrics(args, metric_store):
+    '''
+    with open(args.config) as f:
+        config = yaml.load(f, Loader=yaml.Loader)
+
+    for key in config:
+        for k, v in config[key].items():
+            setattr(args, k, v)
+
     f = open(metric_store, "rb")
     metric_store = pickle.load(f)
     f.close()
-
-    img_vecs = metric_store['images']
+    '''
+    #print(metric_store.keys())
+    im_vecs = metric_store['image']
     instr_vecs = metric_store['recipe']
     names = metric_store['recipe_id']
 
@@ -189,7 +197,7 @@ def generate_metrics(args, metric_store):
     names = names[idxs]
 
     # Ranker
-    N = 1000
+    N = 100
     idxs = range(N)
 
     glob_rank = []
@@ -236,7 +244,7 @@ def generate_metrics(args, metric_store):
             recall[i]=recall[i]/N
 
         med = np.median(med_rank)
-        print("median", med)
+        #print("median", med)
 
         for i in recall.keys():
             glob_recall[i]+=recall[i]
@@ -284,6 +292,11 @@ def run(args, model_inputs=None):
 
 
 if __name__ == '__main__':
-    model_inputs = pre_process()
-    main(model_inputs)
+    #model_inputs = pre_process()
+    #main(model_inputs)
     #run_pickle_data('experiments/results_dict.pkl')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', default='configs/config_fullmodel.yaml')
+    args = parser.parse_args()
+    generate_metrics(args, 'metric_store_0.pkl')
+    

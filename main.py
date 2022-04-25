@@ -38,6 +38,8 @@ import torchvision.models as models
 from data_loader import ImageLoader
 from models import Im2Recipe
 
+from tune_model import generate_metrics
+
 parser = argparse.ArgumentParser(description='CS7643 Assignment-2 Part 2')
 parser.add_argument('--config', default='configs/config_fullmodel.yaml')
 
@@ -165,14 +167,14 @@ def validate(epoch, val_loader, model, criterion, args):
         #                              END OF YOUR CODE                             #
         #############################################################################
         if args.generate_metrics:
-            if idx = 0:
+            if idx == 0:
                 img_store = out_image.data.cpu().numpy()
                 recipe_store = out_recipe.data.cpu().numpy()
-                recipe_id_store = target[-1]
+                recipe_id_store = target[-1].data.cpu().numpy()
             else:
-                img_store = np.concatenate(img_store, out_image.data.cpu().numpy())
-                recipe_store = np.concatenate(out_recipe, out_image.data.cpu().numpy())
-                recipe_id_store = np.concatenate(img_store, target[-1], axis=0)
+                img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
+                recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
+                recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
         # batch_acc = accuracy(out, target)
 
         # update confusion matrix
@@ -201,19 +203,19 @@ def validate(epoch, val_loader, model, criterion, args):
     # return acc.avg, cm
     if args.generate_metrics:
         metric_store = {}
-        metric_store['image'] = image_store
+        metric_store['image'] = img_store
         metric_store['recipe'] = recipe_store
         metric_store['recipe_id'] = recipe_id_store
 
+        '''
         import pickle
-        pickle_file = 'metric_store_{}.pkl'.format(epoch)
+        pickle_file = 'metric_store.pkl'.format(epoch)
         f=open(pickle_file, 'wb')
         pickle.dump(metric_store, f)
         f.close()
         #return losses.avg, metric_store
-
-        from tune_model import generate_metrics
-        generate_metrics(args, pickle_file)
+        '''
+        generate_metrics(args, metric_store)
 
     return losses.avg
 
