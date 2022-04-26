@@ -27,3 +27,10 @@ ingredient_lstm:
 recipe_lstm:
   recipe_lstm_dim: 1024
   recipe_embedding_dim: 1024
+
+transformer:
+    hidden_dim: 128
+    num_heads: 4 # 2 original
+    dim_feedforward: 256 # 2048 original
+    learning_rate: 1e-3
+    epochs: 10

@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 
-#from lstm.lstm_model import RecipeModel_ref as RecipeModel
-#from lstm.lstm_model import IngredModel_ref as IngredModel
 from lstm.lstm_model import RecipeModel
 from lstm.lstm_model import IngredModel
 

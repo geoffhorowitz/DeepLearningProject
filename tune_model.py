@@ -172,6 +172,8 @@ def prepare(args):
     return loaders, model, criterion
 
 def generate_metrics(args, metric_store):
+    # metric analysis ref: https://github.com/torralba-lab/im2recipe-Pytorch/blob/master/scripts/rank.py
+    # taken from paper to ensure comparability of results
     '''
     with open(args.config) as f:
         config = yaml.load(f, Loader=yaml.Loader)
@@ -299,4 +301,3 @@ if __name__ == '__main__':
     parser.add_argument('--config', default='configs/config_fullmodel.yaml')
     args = parser.parse_args()
     generate_metrics(args, 'metric_store_0.pkl')
-    

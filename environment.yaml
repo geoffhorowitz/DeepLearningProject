@@ -4,7 +4,7 @@ channels:
 dependencies:
   - numpy
   - matplotlib
-  - pyyaml=5.4.1
+  - pyyaml
   - pillow
   - word2vec
   - tqdm
