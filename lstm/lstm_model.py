@@ -66,19 +66,27 @@ class IngredModel(nn.Module):
         seq_length = data[4].to(self.device)
 
         embedded = self.emb(x)
-        #out, hidden = self.lstm(embedded)
+        '''
+        # after 10 epochs, .1 train/.05 val: .71 train loss, 1.46 val loss, Mean median 17.25 Recall {1: 0.054000000000000006, 5: 0.22000000000000003, 10: 0.35500000000000004}
+        out, hidden = self.lstm(embedded)
+        #output = self.trans(packed_embedded)
+        return out[:, -1, :]
         
+        '''
+        
+        # after 10 epochs, .1 train/.05 val: .71 train loss, 1.46 val loss, Mean median 17.25 Recall {1: 0.035, 5: 0.20199999999999996, 10: 0.35600000000000004}
+        '''
         # pack padded and pad packed lets the model ignore padded elements (and resequences them on the backend) --> helps train faster
         # ref: https://suzyahyah.github.io/pytorch/2019/07/01/DataLoader-Pad-Pack-Sequence.html
         # ref: https://pytorch.org/docs/stable/generated/torch.nn.utils.rnn.pad_packed_sequence.html
         # ref: https://pytorch.org/docs/stable/generated/torch.nn.utils.rnn.pad_packed_sequence.html
-
+        
         # per docs, to avoid sorting the inputs, can pass enforce_sorted=False as long as we don't need ONNX exportability
         packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(embedded, seq_length.cpu().data.numpy(), batch_first=True, enforce_sorted=False)
         output, hidden = self.lstm(packed_embedded)
-        #output = self.trans(x)
         #output_unpacked, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(hidden[0], batch_first=True)
-        original_ndx = packed_embedded.unsorted_indices
+        original_ndx = packed_embedded.sorted_indices
+        #original_ndx = packed_embedded.unsorted_indices
         unsort_ndx = original_ndx.view(1,-1,1).expand_as(hidden[0])
         output_unpacked = hidden[0].gather(1,unsort_ndx).transpose(0,1).contiguous()
         #print('ingred', output_unpacked.shape)
@@ -88,20 +96,11 @@ class IngredModel(nn.Module):
         return out
         
         '''
-        input_var = list()
-        for j in range(len(data)):
-            input_var.append(data[j].to(self.device))
-
-        x = input_var[3]
-        sq_lengths = input_var[4]
-
-        x = self.emb(x)
-        '''
-        '''
+        # after 10 epochs, .1 train/.05 val: .7 train loss, 1.42 val loss, Mean median 16.75 Recall {1: 0.037, 5: 0.142, 10: 0.246}
         sorted_len, sorted_idx = seq_length.sort(0, descending=True)
         index_sorted_idx = sorted_idx\
-                .view(-1,1,1).expand_as(x)
-        sorted_inputs = x.gather(0, index_sorted_idx.long())
+                .view(-1,1,1).expand_as(embedded)
+        sorted_inputs = embedded.gather(0, index_sorted_idx.long())
         packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(sorted_inputs, sorted_len.cpu().data.numpy(), batch_first=True)
         out, hidden = self.lstm(packed_embedded)
         _, original_idx = sorted_idx.sort(0, descending=False)
@@ -110,7 +109,7 @@ class IngredModel(nn.Module):
         output = output.view(output.size(0),output.size(1)*output.size(2))
 
         return output
-        '''
+        
 
 
 class RecipeModel(nn.Module):
@@ -132,24 +131,51 @@ class RecipeModel(nn.Module):
         
         x = data[1].to(self.device)
         seq_length = data[2].to(self.device)
-
         embedded = x
         #output, hidden = self.lstm(x)
-        
+        '''
+        # after 10 epochs, .1 train/.05 val: .78 train loss, 1.54 val loss, Mean median 29.4 Recall {1: 0.019999999999999997, 5: 0.11099999999999999, 10: 0.215}
         # see comments in IngredRecipe above
         packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(embedded, seq_length.cpu().data.numpy(), batch_first=True, enforce_sorted=False)
         output, hidden = self.lstm(packed_embedded)
         #output = self.trans(x)
         output_unpacked, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
-        #print('recipe', output_unpacked.shape)
-        #out = output_unpacked[:, -1, :]
-        
-        original_ndx = packed_embedded.unsorted_indices
+        out = output_unpacked[:, -1, :]
+        return out
+        '''
+        '''
+        # after 10 epochs, .1 train/.05 val: .74 train loss, 1.45 val loss, Mean median 26.4 Recall {1: 0.06100000000000001, 5: 0.22400000000000003, 10: 0.36699999999999994}
+        packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(embedded, seq_length.cpu().data.numpy(), batch_first=True, enforce_sorted=False)
+        output, hidden = self.lstm(packed_embedded)
+        output_unpacked, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
+        original_ndx = packed_embedded.sorted_indices
         unsort_ndx = original_ndx.view(-1,1,1).expand_as(output_unpacked)
         ref_idx = (seq_length-1).view(-1,1).expand(output_unpacked.size(0), output_unpacked.size(2)).unsqueeze(1)
         output = output_unpacked.gather(0, unsort_ndx.long()).gather(1, ref_idx.long())
         output = output.view(output.size(0),output.size(1)*output.size(2))
         out = output
-        
-        #print('recipe_out', out.shape)
         return out
+        
+        '''
+        # after 10 epochs, .1 train/.05 val: .7 train loss, 1.42 val loss, Mean median 16.75 Recall {1: 0.037, 5: 0.142, 10: 0.246}
+        sorted_len, sorted_idx = seq_length.sort(0, descending=True)
+        index_sorted_idx = sorted_idx\
+                .view(-1,1,1).expand_as(embedded)
+        sorted_inputs = embedded.gather(0, index_sorted_idx.long())
+        # pack sequence
+        packed_seq = torch.nn.utils.rnn.pack_padded_sequence(
+                sorted_inputs, sorted_len.cpu().data.numpy(), batch_first=True)
+        # pass it to the lstm
+        out, hidden = self.lstm(packed_seq)
+
+        # unsort the output
+        _, original_idx = sorted_idx.sort(0, descending=False)
+
+        unpacked, _ = torch.nn.utils.rnn.pad_packed_sequence(out, batch_first=True)
+        unsorted_idx = original_idx.view(-1,1,1).expand_as(unpacked)
+        idx = (seq_length-1).view(-1,1).expand(unpacked.size(0), unpacked.size(2)).unsqueeze(1)
+        output = unpacked.gather(0, unsorted_idx.long()).gather(1,idx.long())
+        output = output.view(output.size(0),output.size(1)*output.size(2))
+
+        return output 
+        

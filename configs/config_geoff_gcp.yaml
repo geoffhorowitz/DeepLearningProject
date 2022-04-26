@@ -1,11 +1,11 @@
 Train:
-  batch_size: 256
+  batch_size: 64
   learning_rate: 0.001
   reg: 0.0005
   epochs: 10
-  steps: [6, 8]
-  warmup: 0
-  momentum: 0.9
+  #steps: [6, 8]
+  #warmup: 0
+  #momentum: 0.9
   embed_dim: 1024
   num_classes: 1048
   train_percent: 0.1
