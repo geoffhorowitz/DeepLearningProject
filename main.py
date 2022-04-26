@@ -256,26 +256,31 @@ def im2recipe(args):
     # np.random.shuffle(indexes)
     train_cutoff = int(args.train_percent * num_images)
     val_cutoff = train_cutoff + int(args.val_percent * num_images)
+    train_indexes = indexes[:train_cutoff]
+    image_loader.all_idx = train_indexes
+    val_indexes = indexes[train_cutoff:val_cutoff]
     if torch.cuda.is_available():
         train_loader = torch.utils.data.DataLoader(
-            image_loader, batch_size=args.batch_size, sampler=indexes[:train_cutoff],
+            image_loader, batch_size=args.batch_size, sampler=train_indexes,
             num_workers=args.workers, pin_memory=True)
         val_loader = torch.utils.data.DataLoader(
             ImageLoader(
                 args.image_path,
                 transform_val,
                 data_path=args.data_path,
-                partition='val'), batch_size=args.batch_size, sampler=indexes[train_cutoff:val_cutoff],
+                partition='val',
+                all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes,
             num_workers=args.workers, pin_memory=True)
     else:
         train_loader = torch.utils.data.DataLoader(
-            image_loader, batch_size=args.batch_size, sampler=indexes[:train_cutoff])
+            image_loader, batch_size=args.batch_size, sampler=train_indexes)
         val_loader = torch.utils.data.DataLoader(
             ImageLoader(
                 args.image_path,
                 transform_val,
                 data_path=args.data_path,
-                partition='val'), batch_size=args.batch_size, sampler=indexes[train_cutoff:val_cutoff])
+                partition='val',
+                all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes)
 
     model = Im2Recipe(args)
 

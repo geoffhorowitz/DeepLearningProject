@@ -1,5 +1,5 @@
 Train:
-  batch_size: 128
+  batch_size: 256
   learning_rate: 0.0001
   reg: 0.00005
   epochs: 10
@@ -8,8 +8,8 @@ Train:
   momentum: 0.9
   embed_dim: 1024
   num_classes: 1048
-  train_percent: 0.1
-  val_percent: 0.1
+  train_percent: 0.6
+  val_percent: 0.2
   semantic_reg: False
   cos_weight: 0.98
   image_weight: 0.01
@@ -22,6 +22,7 @@ network:
 data:
   data_path: '../data'
   image_path: '../images'
+  generate_metrics: False
   save_best: True
 
 ingredient_lstm:

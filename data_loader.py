@@ -40,7 +40,7 @@ def default_loader(path):
 
 class ImageLoader(data.Dataset):
     def __init__(self, img_path, transform=None, target_transform=None,
-                 loader=default_loader, square=False, data_path=None, partition=None, sem_reg=None):
+                 loader=default_loader, square=False, data_path=None, partition=None, sem_reg=None, all_idx=None):
 
         if data_path == None:
             raise Exception('No data path specified.')
@@ -71,6 +71,9 @@ class ImageLoader(data.Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.loader = loader
+
+        # added in for proper mismatch search
+        self.all_idx = all_idx if all_idx is not None else range(len(self.ids))
 
     def __getitem__(self, index):
         recipId = self.ids[index]
@@ -103,10 +106,9 @@ class ImageLoader(data.Dataset):
             path = os.path.join(self.imgPath, loader_path, imgs[imgIdx]['id'])
         else:
             # we randomly pick one non-matching image
-            all_idx = range(len(self.ids))
-            rndindex = np.random.choice(all_idx)
+            rndindex = np.random.choice(self.all_idx)
             while rndindex == index:
-                rndindex = np.random.choice(all_idx)  # pick a random index
+                rndindex = np.random.choice(self.all_idx)  # pick a random index
 
             with self.env.begin(write=False) as txn:
                 serialized_sample = txn.get(self.ids[rndindex].encode('latin1'))
