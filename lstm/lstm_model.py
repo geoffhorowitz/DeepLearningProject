@@ -67,7 +67,7 @@ class IngredModel(nn.Module):
 
         embedded = self.emb(x)
         #out, hidden = self.lstm(embedded)
-
+        
         # pack padded and pad packed lets the model ignore padded elements (and resequences them on the backend) --> helps train faster
         # ref: https://suzyahyah.github.io/pytorch/2019/07/01/DataLoader-Pad-Pack-Sequence.html
         # ref: https://pytorch.org/docs/stable/generated/torch.nn.utils.rnn.pad_packed_sequence.html
@@ -76,12 +76,17 @@ class IngredModel(nn.Module):
         # per docs, to avoid sorting the inputs, can pass enforce_sorted=False as long as we don't need ONNX exportability
         packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(embedded, seq_length.cpu().data.numpy(), batch_first=True, enforce_sorted=False)
         output, hidden = self.lstm(packed_embedded)
-        #out = self.trans(x)
-        output_unpacked, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
-        out = output_unpacked
+        #output = self.trans(x)
+        #output_unpacked, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(hidden[0], batch_first=True)
+        original_ndx = packed_embedded.unsorted_indices
+        unsort_ndx = original_ndx.view(1,-1,1).expand_as(hidden[0])
+        output_unpacked = hidden[0].gather(1,unsort_ndx).transpose(0,1).contiguous()
+        #print('ingred', output_unpacked.shape)
+        out = output_unpacked.view(output_unpacked.size(0),output_unpacked.size(1)*output_unpacked.size(2))
+        #print('ingred_out', out.shape)
 
-        return out[:, -1, :]
-
+        return out
+        
         '''
         input_var = list()
         for j in range(len(data)):
@@ -91,13 +96,14 @@ class IngredModel(nn.Module):
         sq_lengths = input_var[4]
 
         x = self.emb(x)
-
-        sorted_len, sorted_idx = sq_lengths.sort(0, descending=True)
+        '''
+        '''
+        sorted_len, sorted_idx = seq_length.sort(0, descending=True)
         index_sorted_idx = sorted_idx\
                 .view(-1,1,1).expand_as(x)
         sorted_inputs = x.gather(0, index_sorted_idx.long())
-        packed_seq = torch.nn.utils.rnn.pack_padded_sequence(sorted_inputs, sorted_len.cpu().data.numpy(), batch_first=True)
-        out, hidden = self.lstm(packed_seq)
+        packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(sorted_inputs, sorted_len.cpu().data.numpy(), batch_first=True)
+        out, hidden = self.lstm(packed_embedded)
         _, original_idx = sorted_idx.sort(0, descending=False)
         unsorted_idx = original_idx.view(1,-1,1).expand_as(hidden[0])
         output = hidden[0].gather(1,unsorted_idx).transpose(0,1).contiguous()
@@ -123,30 +129,27 @@ class RecipeModel(nn.Module):
         #                                    dim_feedforward=args.dim_feedforward, dim_k=96, dim_v=96, dim_q=96, max_length=500)
 
     def forward(self, data):
+        
         x = data[1].to(self.device)
         seq_length = data[2].to(self.device)
 
         embedded = x
-
+        #output, hidden = self.lstm(x)
+        
         # see comments in IngredRecipe above
         packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(embedded, seq_length.cpu().data.numpy(), batch_first=True, enforce_sorted=False)
-        #out, hidden = self.lstm(x)
         output, hidden = self.lstm(packed_embedded)
-        #out = self.trans(x)
+        #output = self.trans(x)
         output_unpacked, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
-        out = output_unpacked
-
-        return out[:, -1, :]
-
-        '''
-        sorted_len, sorted_idx = seq_length.sort(0, descending=True)
-        index_sorted_idx = sorted_idx.view(-1,1,1).expand_as(x)
-        sorted_inputs = x.gather(0, index_sorted_idx.long())
-        packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(sorted_inputs, sorted_len.cpu().data.numpy(), batch_first=True)
-        output, hidden = self.lstm(packed_embedded)
-        _, original_idx = sorted_idx.sort(0, descending=False)
-        unsorted_idx = original_idx.view(1,-1,1).expand_as(hidden[0])
-        output = hidden[0].gather(1,unsorted_idx).transpose(0,1).contiguous()
+        #print('recipe', output_unpacked.shape)
+        #out = output_unpacked[:, -1, :]
+        
+        original_ndx = packed_embedded.unsorted_indices
+        unsort_ndx = original_ndx.view(-1,1,1).expand_as(output_unpacked)
+        ref_idx = (seq_length-1).view(-1,1).expand(output_unpacked.size(0), output_unpacked.size(2)).unsqueeze(1)
+        output = output_unpacked.gather(0, unsort_ndx.long()).gather(1, ref_idx.long())
         output = output.view(output.size(0),output.size(1)*output.size(2))
-        return output
-        '''
+        out = output
+        
+        #print('recipe_out', out.shape)
+        return out

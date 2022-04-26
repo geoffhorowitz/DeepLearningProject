@@ -1,7 +1,7 @@
 Train:
   batch_size: 256
   learning_rate: 0.001
-  reg: 0.00005
+  reg: 0.0005
   epochs: 10
   steps: [6, 8]
   warmup: 0
