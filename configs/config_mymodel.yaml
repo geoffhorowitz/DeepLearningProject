@@ -15,6 +15,7 @@ Train:
   image_weight: 0.01
   recipe_weight: 0.01
   workers: 4
+  mismatch: 0.5
 
 network:
   model: im2recipe

@@ -39,7 +39,7 @@ def default_loader(path):
 
 
 class ImageLoader(data.Dataset):
-    def __init__(self, img_path, transform=None, target_transform=None,
+    def __init__(self, img_path, transform=None, target_transform=None, mismatch=0.8,
                  loader=default_loader, square=False, data_path=None, partition=None, sem_reg=None, all_idx=None):
 
         if data_path == None:
@@ -60,7 +60,7 @@ class ImageLoader(data.Dataset):
 
         self.square = square
         self.imgPath = img_path
-        self.mismtch = 0.8
+        self.mismtch = mismatch
         self.maxInst = 20
 
         if sem_reg is not None:

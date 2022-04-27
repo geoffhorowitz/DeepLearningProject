@@ -252,7 +252,8 @@ def im2recipe(args):
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train')
+    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train',
+                               mismatch=args.mismatch)
     num_images = len(image_loader)
     indexes = np.arange(num_images)
     # np.random.shuffle(indexes)
@@ -271,6 +272,7 @@ def im2recipe(args):
                 transform_val,
                 data_path=args.data_path,
                 partition='val',
+                mismatch=args.mismatch,
                 all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes,
             num_workers=args.workers, pin_memory=True)
     else:
@@ -282,6 +284,7 @@ def im2recipe(args):
                 transform_val,
                 data_path=args.data_path,
                 partition='val',
+                mismatch=args.mismatch,
                 all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes)
 
     model = Im2Recipe(args)
