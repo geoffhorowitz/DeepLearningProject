@@ -57,21 +57,21 @@ def plot_complex_learning_curve(results_dict, logx_scale=False):
         figure_count += 1
 
         for exp_count, (exp_val, all_runs) in enumerate(val.items()):
-            best_perp = results_dict[key][exp_val]['best_perp']
+            best_median = results_dict[key][exp_val]['best_median']
             best_run = results_dict[key][exp_val]['best_run']
 
             best_res_text = '\nexperiment {}={}:'.format(key, exp_val) + \
-                            'Run {} with train {}, validation {} perplexity'.format(best_run, np.round(results_dict[key][exp_val][best_run]['train_perp'][-1], 4), np.round(best_perp, 4))
+                            'Run {} with train {}, validation {} median'.format(best_run, np.round(results_dict[key][exp_val][best_run]['train_median'][-1], 4), np.round(best_median, 4))
             best_fh.write(best_res_text)
 
             train_loss_mean = results_dict[key][exp_val]['train_loss_mean']
             train_loss_std = results_dict[key][exp_val]['train_loss_std']
-            train_acc_mean = results_dict[key][exp_val]['train_perp_mean']
-            train_acc_std = results_dict[key][exp_val]['train_perp_std']
+            train_acc_mean = results_dict[key][exp_val]['train_median_mean']
+            train_acc_std = results_dict[key][exp_val]['train_median_std']
             val_loss_mean = results_dict[key][exp_val]['val_loss_mean']
             val_loss_std = results_dict[key][exp_val]['val_loss_std']
-            val_acc_mean = results_dict[key][exp_val]['val_perp_mean']
-            val_acc_std = results_dict[key][exp_val]['val_perp_std']
+            val_acc_mean = results_dict[key][exp_val]['val_median_mean']
+            val_acc_std = results_dict[key][exp_val]['val_median_std']
 
             # Plot learning curve
             fig, axs = plt.subplots(2, 1)
@@ -117,9 +117,9 @@ def plot_complex_learning_curve(results_dict, logx_scale=False):
             else:
                 ax.plot(training_range, train_acc_mean, 'o-', color=train_color, label='Training')
                 ax.plot(training_range, val_acc_mean, 'o-', color=test_color, label='Validation')
-            ax.set_title("Figure {}.{}: Perplexity Learning Curve".format(2*figure_count+2, exp_count)+title_suffix)
+            ax.set_title("Figure {}.{}: Median Rank Learning Curve".format(2*figure_count+2, exp_count)+title_suffix)
             ax.set_xlabel("Epochs")
-            ax.set_ylabel("Perplexity")
+            ax.set_ylabel("Median Rank")
             ax.legend(loc="best")
             ax.grid(linestyle='dotted')
             #plt.savefig("Perplexity_curve.png")
@@ -154,12 +154,12 @@ def plot_complexity_curve(results_dict, logx_scale=False):
 
             train_loss_mean[exp_count] = results_dict[key][exp_val]['train_loss_mean'][-1]
             train_loss_std[exp_count] = results_dict[key][exp_val]['train_loss_std'][-1]
-            train_acc_mean[exp_count] = results_dict[key][exp_val]['train_perp_mean'][-1]
-            train_acc_std[exp_count] = results_dict[key][exp_val]['train_perp_std'][-1]
+            train_acc_mean[exp_count] = results_dict[key][exp_val]['train_median_mean'][-1]
+            train_acc_std[exp_count] = results_dict[key][exp_val]['train_median_std'][-1]
             val_loss_mean[exp_count] = results_dict[key][exp_val]['val_loss_mean'][-1]
             val_loss_std[exp_count] = results_dict[key][exp_val]['val_loss_std'][-1]
-            val_acc_mean[exp_count] = results_dict[key][exp_val]['val_perp_mean'][-1]
-            val_acc_std[exp_count] = results_dict[key][exp_val]['val_perp_std'][-1]
+            val_acc_mean[exp_count] = results_dict[key][exp_val]['val_median_mean'][-1]
+            val_acc_std[exp_count] = results_dict[key][exp_val]['val_median_std'][-1]
 
             training_range[exp_count]  = exp_val
 
@@ -210,9 +210,9 @@ def plot_complexity_curve(results_dict, logx_scale=False):
         else:
             ax.plot(training_range, train_acc_mean, 'o-', color=train_color, label='Training')
             ax.plot(training_range, val_acc_mean, 'o-', color=test_color, label='Validation')
-        ax.set_title("Figure {}.b: Perplexity Complexity Curve".format(2*figure_count+2)+title_suffix)
+        ax.set_title("Figure {}.b: Median Rank Complexity Curve".format(2*figure_count+2)+title_suffix)
         ax.set_xlabel(label)
-        ax.set_ylabel("Perplexity")
+        ax.set_ylabel("Median Rank")
         ax.legend(loc="best")
         ax.grid(linestyle='dotted')
         #plt.savefig("Perplexity_curve.png")

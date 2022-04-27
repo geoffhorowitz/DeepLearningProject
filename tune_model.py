@@ -22,7 +22,7 @@ from models import Im2Recipe
 from plot_methods import plot_simple_learning_curve, plot_complex_learning_curve, plot_complexity_curve
 
 
-def main(model_inputs):
+def main(model_inputs=None):
     default_dict = {
         #Train:
         'batch_size': 100,
@@ -70,7 +70,7 @@ def main(model_inputs):
     }
 
 
-    runs_per_experiment = 2 # balance b/w trials and hyperparams to test
+    runs_per_experiment = 3 # balance b/w trials and hyperparams to test
 
     results_dict = {'defaults': default_dict}
 
@@ -78,12 +78,14 @@ def main(model_inputs):
         results_dict[key] = {}
         for j, (exp_val) in enumerate(val):
             results_dict[key][exp_val] = {}
-            best_perp = 1e10
+            best_median = 1e10
             n_epochs = default_dict['epochs'] if 'epochs' != key else exp_val
             train_loss_all = np.zeros((runs_per_experiment, n_epochs))
-            train_perp_all = np.zeros((runs_per_experiment, n_epochs))
+            #train_perp_all = np.zeros((runs_per_experiment, n_epochs))
+            train_median_all = np.zeros((runs_per_experiment, n_epochs))
             val_loss_all = np.zeros((runs_per_experiment, n_epochs))
-            val_perp_all = np.zeros((runs_per_experiment, n_epochs))
+            #val_perp_all = np.zeros((runs_per_experiment, n_epochs))
+            val_median_all = np.zeros((runs_per_experiment, n_epochs))
 
             fh = open('experiments/{}_{}_results.txt'.format(key, exp_val), 'w')
 
@@ -93,31 +95,31 @@ def main(model_inputs):
 
                 args = namedtuple("args", input_dict.keys())(*input_dict.values()) # to get it in the same dot callable format
 
-                train_loss, val_loss, train_perp, val_perp, model = run(args, model_inputs)
+                train_loss, val_loss, train_median, val_median = run(args, model_inputs)
 
                 # save pertinent results for later plotting
-                if val_perp[-1] < best_perp:
-                    best_perp = val_perp[-1]
+                if val_median[-1] < best_median:
+                    best_median = val_median[-1]
                     best_run = k
 
                 results_dict[key][exp_val][k] = {}
                 results_dict[key][exp_val][k]['id'] = '{}.{}.{}'.format(i+1, j+1, k+1)
                 results_dict[key][exp_val][k]['train_loss'] = train_loss
-                results_dict[key][exp_val][k]['train_perp'] = train_perp
+                results_dict[key][exp_val][k]['train_median'] = train_median
                 results_dict[key][exp_val][k]['val_loss'] = val_loss
-                results_dict[key][exp_val][k]['val_perp'] = val_perp
+                results_dict[key][exp_val][k]['val_median'] = val_median
 
                 train_loss_all[k, :] = train_loss
-                train_perp_all[k, :] = train_perp
+                train_median_all[k, :] = train_median
                 val_loss_all[k, :] = val_loss
-                val_perp_all[k, :] = val_perp
+                val_median_all[k, :] = val_median
 
                 # text results
                 results_text = '\nexperiment {}={} run {}:'.format(key, exp_val, k) + \
                                 '\n\ttrain loss: {}'.format(np.round(train_loss[-1], 4)) + \
-                                '\n\ttrain perplexity: {}'.format(np.round(train_perp[-1], 4)) + \
+                                '\n\ttrain median: {}'.format(np.round(train_median[-1], 4)) + \
                                 '\n\tvalid loss: {}'.format(np.round(val_loss[-1], 4)) + \
-                                '\n\tvalid perplexity: {}'.format(np.round(val_perp[-1], 4))
+                                '\n\tvalid median: {}'.format(np.round(val_median[-1], 4))
 
                 print(results_text)
 
@@ -127,16 +129,16 @@ def main(model_inputs):
                 #plot_simple_learning_curve(train_loss, train_perp, val_loss, val_perp, (key, exp_val, i, j, k))
 
             # compute stats
-            results_dict[key][exp_val]['best_perp'] = best_perp
+            results_dict[key][exp_val]['best_median'] = best_median
             results_dict[key][exp_val]['best_run'] = best_run
             results_dict[key][exp_val]['train_loss_mean'] = np.mean(train_loss_all, axis=0)
             results_dict[key][exp_val]['train_loss_std'] = np.std(train_loss_all, axis=0)
-            results_dict[key][exp_val]['train_perp_mean'] = np.mean(train_perp_all, axis=0)
-            results_dict[key][exp_val]['train_perp_std'] = np.std(train_perp_all, axis=0)
+            results_dict[key][exp_val]['train_median_mean'] = np.mean(train_median_all, axis=0)
+            results_dict[key][exp_val]['train_median_std'] = np.std(train_median_all, axis=0)
             results_dict[key][exp_val]['val_loss_mean'] = np.mean(val_loss_all, axis=0)
             results_dict[key][exp_val]['val_loss_std'] = np.std(val_loss_all, axis=0)
-            results_dict[key][exp_val]['val_perp_mean'] = np.mean(val_perp_all, axis=0)
-            results_dict[key][exp_val]['val_perp_std'] = np.std(val_perp_all, axis=0)
+            results_dict[key][exp_val]['val_median_mean'] = np.mean(val_median_all, axis=0)
+            results_dict[key][exp_val]['val_median_std'] = np.std(val_median_all, axis=0)
 
             # close file handle
             fh.close()
@@ -168,6 +170,7 @@ def prepare(args):
         model = model.cuda()
 
     return loaders, model, criterion
+
 
 def generate_metrics(args, metric_store):
     # metric analysis ref: https://github.com/torralba-lab/im2recipe-Pytorch/blob/master/scripts/rank.py
@@ -252,8 +255,13 @@ def generate_metrics(args, metric_store):
 
     for i in glob_recall.keys():
         glob_recall[i] = glob_recall[i]/10
-    print("Mean median", np.average(glob_rank))
-    print("Recall", glob_recall)
+
+    median = np.average(glob_rank)
+    recall = glob_recall
+    print("Mean median", median)
+    print("Recall", recall)
+    return median, recall
+
 
 def run(args, model_inputs=None):
     '''
@@ -269,25 +277,27 @@ def run(args, model_inputs=None):
 
     train_loss_history = np.zeros(args.epochs)
     val_loss_history = np.zeros(args.epochs)
-    train_perp_history = np.zeros(args.epochs)
-    val_perp_history = np.zeros(args.epochs)
+    train_median_history = np.zeros(args.epochs)
+    val_median_history = np.zeros(args.epochs)
 
     for epoch_idx in range(args.epochs):
-        avg_train_loss = train(epoch, loaders[0], model, optimizer, criterion, args)
-        avg_val_loss = validate(epoch, loaders[1], model, criterion, args)
+        avg_train_loss, (train_median, train_recall) = train(epoch, loaders[0], model, optimizer, criterion, args)
+        avg_val_loss, (val_median, val_recall) = validate(epoch, loaders[1], model, criterion, args)
 
         avg_train_loss = avg_train_loss.item()
         avg_val_loss = avg_val_loss.item()
-        train_perplex = np.exp(avg_train_loss)
-        val_perplex = np.exp(avg_val_loss)
+        #train_perplex = np.exp(avg_train_loss)
+        #val_perplex = np.exp(avg_val_loss)
 
         train_loss_history[epoch_idx] = avg_train_loss
         val_loss_history[epoch_idx] = avg_val_loss
-        train_perp_history[epoch_idx] = train_perplex
-        val_perp_history[epoch_idx] = val_perplex
+        #train_perp_history[epoch_idx] = train_perplex
+        #val_perp_history[epoch_idx] = val_perplex
+        train_median_history[epoch_idx] = train_median
+        val_median_history[epoch_idx] = val_median
 
-
-    return train_loss_history, val_loss_history, train_perp_history, val_perp_history, seq2seq_model
+    #return train_loss_history, val_loss_history, train_perp_history, val_perp_history, train_median_history, val_median_history
+    return train_loss_history, val_loss_history, train_median_history, val_median_history
 
 
 

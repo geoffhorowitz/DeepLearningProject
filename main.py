@@ -215,9 +215,9 @@ def validate(epoch, val_loader, model, criterion, args):
         f.close()
         #return losses.avg, metric_store
         '''
-        generate_metrics(args, metric_store)
+        metric_results = generate_metrics(args, metric_store) # returns median, recall
 
-    return losses.avg
+    return losses.avg, metric_results
 
 
 # def adjust_learning_rate(optimizer, epoch, args):
@@ -326,9 +326,9 @@ def main():
         # adjust_learning_rate(optimizer, epoch, args)
 
         # train loop
-        train_loss = train(epoch, loaders[0], model, optimizer, criterion, args)
+        train_loss, _ = train(epoch, loaders[0], model, optimizer, criterion, args)
 
-        val_loss = validate(epoch, loaders[1], model, criterion, args)
+        val_loss, _ = validate(epoch, loaders[1], model, criterion, args)
 
         if val_loss < best:
             best = val_loss
