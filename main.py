@@ -144,6 +144,7 @@ def validate(epoch, val_loader, model, criterion, args):
 
     # num_class = 10
     # cm = torch.zeros(num_class, num_class)
+    img_store = recipe_store = recipe_id_store = None
     # evaluation loop
     for idx, (data, target) in enumerate(val_loader):
         start = time.time()
@@ -201,6 +202,7 @@ def validate(epoch, val_loader, model, criterion, args):
     #
     # print("* Prec @1: {top1.avg:.4f}".format(top1=acc))
     # return acc.avg, cm
+    metric_results = None
     if args.generate_metrics:
         metric_store = {}
         metric_store['image'] = img_store
@@ -326,7 +328,7 @@ def main():
         # adjust_learning_rate(optimizer, epoch, args)
 
         # train loop
-        train_loss, _ = train(epoch, loaders[0], model, optimizer, criterion, args)
+        train_loss = train(epoch, loaders[0], model, optimizer, criterion, args)
 
         val_loss, _ = validate(epoch, loaders[1], model, criterion, args)
 
