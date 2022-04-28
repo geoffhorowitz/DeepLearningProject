@@ -37,7 +37,7 @@ class TransformerTranslator(nn.Module):
     sequences of length T, has an hidden dimension of H, uses word vectors
     also of dimension H, and operates on minibatches of size N.
     """
-    def __init__(self, input_size, output_size, device, hidden_dim=128, num_heads=2, dim_feedforward=2048, dim_k=96, dim_v=96, dim_q=96, max_length=43):
+    def __init__(self, input_size, output_size, device, hidden_dim=128, num_heads=2, dim_feedforward=2048, dim_k=96, dim_v=96, dim_q=96, max_length=43, add_position_embedding=True):
         """
         :param input_size: the size of the input, which equals to the number of words in source language vocabulary
         :param output_size: the size of the output, which equals to the number of words in target language vocabulary
@@ -62,6 +62,7 @@ class TransformerTranslator(nn.Module):
         self.dim_k = dim_k
         self.dim_v = dim_v
         self.dim_q = dim_q
+        self.add_position_embedding = add_position_embedding
 
         seed_torch(0)
 
@@ -150,7 +151,14 @@ class TransformerTranslator(nn.Module):
         # You should only be calling TransformerTranslator class methods here.      #
         #############################################################################
         inputs = inputs.to(self.device)
-        embedded = inputs # inputs are already embedded
+        if inputs.shape[-1] != self.max_length:
+            print('updating max length to: ', inputs.shape[-1])
+            self.max_length = inputs.shape[-1]
+            self.pos_embedding = nn.Embedding(self.max_length, self.word_embedding_dim)
+        if self.add_position_embedding:
+            embedded = self.embed(inputs) # inputs are already embedded, but using this to add positional embedding if needed
+        else:
+            embedded = inputs
         mha_input = embedded
         for i in range(1):
             mha_out = self.multi_head_attention(mha_input)
@@ -177,8 +185,9 @@ class TransformerTranslator(nn.Module):
         # Note: word_to_ix has keys from 0 to self.vocab_size - 1                   #
         # This will take a few lines.                                               #
         #############################################################################
+        # only adding positional embedding since inputs are already word embedded
         pos_indexes = torch.arange(inputs.shape[1], device=self.device)
-        embeddings = self.word_embedding(inputs) + self.pos_embedding(pos_indexes)
+        embeddings = inputs + self.pos_embedding(pos_indexes)
 
         ##############################################################################
         #                               END OF YOUR CODE                             #

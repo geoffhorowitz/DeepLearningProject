@@ -44,8 +44,8 @@ class IngredModel(nn.Module):
 
         # instantiate the LSTM model
         if args.recipe_model == 'transformer':
-            self.model = nn.Transformer(args.ingredient_embedding_dim, args.num_heads, dim_feedforward=args.dim_feedforward, batch_first=True, device=self.device)
-            #self.model = TransformerTranslator(input_size=args.recipe_embedding_dim, output_size=args.recipe_embedding_dim, device=self.device, hidden_dim=args.hidden_dim, num_heads=args.num_heads, dim_feedforward=args.dim_feedforward, dim_k=96, dim_v=96, dim_q=96, max_length=500)
+            #self.model = nn.Transformer(args.ingredient_embedding_dim, args.num_heads, dim_feedforward=args.dim_feedforward, batch_first=True, device=self.device)
+            self.model = TransformerTranslator(input_size=args.ingredient_embedding_dim, output_size=args.ingredient_embedding_dim, device=self.device, hidden_dim=args.hidden_dim, num_heads=args.num_heads, dim_feedforward=args.dim_feedforward, dim_k=96, dim_v=96, dim_q=96, max_length=50, add_position_embedding=False)
         else:
             self.model = nn.LSTM(input_size=args.ingredient_embedding_dim, hidden_size=args.ingredient_lstm_dim, bidirectional=True, batch_first=True)
             #self.model = LSTM(input_size=args.ingredient_embedding_dim, hidden_size=args.ingredient_lstm_dim)
@@ -69,13 +69,32 @@ class IngredModel(nn.Module):
 
         embedded = self.emb(x)
 
-        if self.args.ingred_model_variant == 'base':
+        if self.args.recipe_model == 'transformer'
+            output = self.model(embedded)
+            print('recipe_out', output.shape)
+            output = output[:, -1, :]
+            return output
+        elif self.args.ingred_model_variant == 'base':
             # after 10 epochs, .1 train/.05 val: .71 train loss, 1.46 val loss, Mean median 17.25 Recall {1: 0.054000000000000006, 5: 0.22000000000000003, 10: 0.35500000000000004}
             output, hidden = self.model(embedded)
             #print('ingred_out', output.shape)
             output = output[:, -1, :]
             return output
 
+        elif self.args.ingred_model_variant == 'custom_basic':
+            # pack padded and pad packed lets the model ignore padded elements (and resequences them on the backend) --> helps train faster
+            # ref: https://suzyahyah.github.io/pytorch/2019/07/01/DataLoader-Pad-Pack-Sequence.html
+            # ref: https://pytorch.org/docs/stable/generated/torch.nn.utils.rnn.pad_packed_sequence.html
+            # ref: https://pytorch.org/docs/stable/generated/torch.nn.utils.rnn.pad_packed_sequence.html
+
+            # per docs, to avoid sorting the inputs, can pass enforce_sorted=False as long as we don't need ONNX exportability
+            packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(embedded, seq_length.cpu().data.numpy(), batch_first=True, enforce_sorted=False)
+            output, hidden = self.model(packed_embedded)
+            output_unpacked, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
+            #print('ingred_out', output_unpacked.shape)
+            out = output_unpacked[:, -1, :]
+            return out
+        
         elif self.args.ingred_model_variant == 'custom_fusion':
         # after 10 epochs, .1 train/.05 val: .71 train loss, 1.46 val loss, Mean median 17.25 Recall {1: 0.035, 5: 0.20199999999999996, 10: 0.35600000000000004}
 
@@ -128,8 +147,8 @@ class RecipeModel(nn.Module):
             self.device = torch.device('cpu')
 
         if args.recipe_model == 'transformer':
-            self.model = nn.Transformer(args.recipe_embedding_dim, args.num_heads, dim_feedforward=args.dim_feedforward, batch_first=True, device=self.device)
-            #self.model = TransformerTranslator(input_size=args.recipe_embedding_dim, output_size=args.recipe_embedding_dim, device=self.device, hidden_dim=args.hidden_dim, num_heads=args.num_heads, dim_feedforward=args.dim_feedforward, dim_k=96, dim_v=96, dim_q=96, max_length=500)
+            #self.model = nn.Transformer(args.recipe_embedding_dim, args.num_heads, dim_feedforward=args.dim_feedforward, batch_first=True, device=self.device)
+            self.model = TransformerTranslator(input_size=args.recipe_embedding_dim, output_size=args.recipe_embedding_dim, device=self.device, hidden_dim=args.hidden_dim, num_heads=args.num_heads, dim_feedforward=args.dim_feedforward, dim_k=96, dim_v=96, dim_q=96, max_length=50)
         else:
             self.model = nn.LSTM(input_size=args.recipe_embedding_dim, hidden_size=args.recipe_lstm_dim, bidirectional=False, batch_first=True)
             #self.model = LSTM(input_size=args.recipe_embedding_dim, hidden_size=args.recipe_lstm_dim)
@@ -141,9 +160,13 @@ class RecipeModel(nn.Module):
         embedded = x
         #print(x.shape)
 
-        if self.args.recipe_model_variant == 'base':
+        if self.args.recipe_model == 'transformer'
+            output = self.model(x)
+            print('recipe_out', output.shape)
+            output = output[:, -1, :]
+            return output
+        elif self.args.recipe_model_variant == 'base':
             output, hidden = self.model(x)
-            #output = self.model(x)
             #print('recipe_out', output.shape)
             output = output[:, -1, :]
             return output
@@ -155,6 +178,7 @@ class RecipeModel(nn.Module):
             output, hidden = self.model(packed_embedded)
             #output = self.trans(x)
             output_unpacked, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
+            #print('recipe_out', output_unpacked.shape)
             out = output_unpacked[:, -1, :]
             return out
 
