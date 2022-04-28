@@ -18,6 +18,7 @@ import torchvision.transforms as transforms
 import torchvision.models as models
 from data_loader import ImageLoader
 from models import Im2Recipe
+from main import im2recipe, train, validate
 
 from collections import namedtuple
 from plot_methods import plot_simple_learning_curve, plot_complex_learning_curve, plot_complexity_curve
@@ -195,7 +196,7 @@ def generate_metrics(args, metric_store):
     names = names[idxs]
 
     # Ranker
-    N = 100
+    N = 1000
     idxs = range(N)
 
     glob_rank = []
@@ -295,7 +296,7 @@ else:
     torch.cuda.manual_seed(1234)
     device = torch.device(*('cuda',0))
 
-
+'''
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 
@@ -381,14 +382,6 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
         metric_store['recipe'] = recipe_store
         metric_store['recipe_id'] = recipe_id_store
 
-        '''
-        import pickle
-        pickle_file = 'metric_store.pkl'.format(epoch)
-        f=open(pickle_file, 'wb')
-        pickle.dump(metric_store, f)
-        f.close()
-        #return losses.avg, metric_store
-        '''
         metric_results = generate_metrics(args, metric_store) # returns median, recall
 
     return losses.avg, metric_results
@@ -466,14 +459,6 @@ def validate(epoch, val_loader, model, criterion, args):
         metric_store['recipe'] = recipe_store
         metric_store['recipe_id'] = recipe_id_store
 
-        '''
-        import pickle
-        pickle_file = 'metric_store.pkl'.format(epoch)
-        f=open(pickle_file, 'wb')
-        pickle.dump(metric_store, f)
-        f.close()
-        #return losses.avg, metric_store
-        '''
         metric_results = generate_metrics(args, metric_store) # returns median, recall
 
     return losses.avg, metric_results
@@ -555,7 +540,7 @@ def im2recipe(args):
     else:
         entropy_criterion = None
     return (train_loader, val_loader), model, (cos_criterion, entropy_criterion)
-
+'''
 if __name__ == '__main__':
     #model_inputs = pre_process()
     main(model_inputs=None)

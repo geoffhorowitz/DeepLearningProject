@@ -29,8 +29,11 @@ class Im2Recipe(nn.Module):
         )
         # self.relu = nn.ReLU()
         # self.class_linear = nn.Linear(args.embed_dim, args.num_classes)
-
-        self.recipe_linear = nn.Linear(args.ingredient_embedding_dim*2 + args.recipe_embedding_dim, args.embed_dim)
+        
+        if args.recipe_model == 'transformer':
+            self.recipe_linear = nn.Linear(args.ingredient_embedding_dim + args.recipe_embedding_dim, args.embed_dim)
+        else:
+            self.recipe_linear = nn.Linear(args.ingredient_embedding_dim*2 + args.recipe_embedding_dim, args.embed_dim)
         self.recipe_tanh = nn.Tanh()
         self.recipe_norm = nn.LayerNorm(args.embed_dim)
         self.ingred_model = IngredModel(args)
