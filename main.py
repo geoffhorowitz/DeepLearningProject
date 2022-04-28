@@ -38,7 +38,7 @@ import torchvision.models as models
 from data_loader import ImageLoader
 from models import Im2Recipe
 
-from tune_model import generate_metrics
+from utils.metrics import generate_metrics
 
 parser = argparse.ArgumentParser(description='CS7643 Assignment-2 Part 2')
 parser.add_argument('--config', default='configs/config_fullmodel.yaml')
@@ -69,17 +69,13 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-# def accuracy(output, target):
-#     """Computes the precision@k for the specified values of k"""
-#     batch_size = target.shape[0]
-#
-#     _, pred = torch.max(output, dim=-1)
-#
-#     correct = pred.eq(target).sum() * 1.0
-#
-#     acc = correct / batch_size
-#
-#     return acc
+ def accuracy(output, target):
+     """Computes the precision@k for the specified values of k"""
+     batch_size = target.shape[0]
+     _, pred = torch.max(output, dim=-1)
+     correct = pred.eq(target).sum() * 1.0
+     acc = correct / batch_size
+     return acc
 
 
 def train(epoch, data_loader, model, optimizer, criterion, args):
@@ -92,7 +88,7 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
         start = time.time()
         # use index 0 if criterion is CosineSimilarity, index 1 for image class
         data = [data[i].to(device) for i in range(len(data))]
-        target = [target[i].to(device) for i in range(len(target)-2)]
+        target = [target[i].to(device) for i in range(len(target))]
 
         #############################################################################
         # TODO: Complete the body of training loop                                  #
@@ -174,7 +170,7 @@ def validate(epoch, val_loader, model, criterion, args):
     for idx, (data, target) in enumerate(val_loader):
         start = time.time()
         data = [data[i].to(device) for i in range(len(data))]
-        target = [target[i].to(device) for i in range(len(target)-2)]
+        target = [target[i].to(device) for i in range(len(target))]
 
         #############################################################################
         # TODO: Complete the body of training loop                                  #
@@ -277,8 +273,7 @@ def im2recipe(args):
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train',
-                               mismatch=args.mismatch)
+    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train')
     num_images = len(image_loader)
     indexes = np.arange(num_images)
     np.random.shuffle(indexes)
@@ -297,7 +292,6 @@ def im2recipe(args):
                 transform_val,
                 data_path=args.data_path,
                 partition='val',
-                mismatch=args.mismatch,
                 all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes,
             num_workers=args.workers, pin_memory=True)
     else:
@@ -309,7 +303,6 @@ def im2recipe(args):
                 transform_val,
                 data_path=args.data_path,
                 partition='val',
-                mismatch=args.mismatch,
                 all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes)
 
     model = Im2Recipe(args)
