@@ -19,6 +19,7 @@ import torchvision.models as models
 from data_loader import ImageLoader
 from models import Im2Recipe
 
+from collections import namedtuple
 from plot_methods import plot_simple_learning_curve, plot_complex_learning_curve, plot_complexity_curve
 
 
@@ -28,22 +29,23 @@ def main(model_inputs=None):
         'batch_size': 100,
         'learning_rate': 0.001,
         'reg': 0.0005,
-        'epochs': 15,
+        'epochs': 10,
         'embed_dim': 1024,
         'num_classes': 1048,
-        'train_percent': 0.5,
-        'val_percent': 0.1,
+        'train_percent': 0.1,
+        'val_percent': 0.05,
         'semantic_reg': True,
         'cos_weight': 0.8,
         'image_weight': 0.1,
         'recipe_weight': 0.1,
         'workers': 4,
+        'mismatch': 0.5,
         #network:
-        'model': im2recipe,
+        'model': 'im2recipe',
         #data:
         'data_path': 'data',
         'image_path': 'data/images',
-        'generate_metrics': False,
+        'generate_metrics': True,
         'save_best': True,
         #ingredient_lstm:
         'ingredient_lstm_dim': 300,
@@ -52,6 +54,7 @@ def main(model_inputs=None):
         #recipe_lstm:
         'recipe_lstm_dim': 1024,
         'recipe_embedding_dim': 1024,
+        'dropout': .2
     }
 
     # LSTM
@@ -66,11 +69,11 @@ def main(model_inputs=None):
         #'learning_rate': [1e-2, 1e-3, 1e-4], # 1e-3
         #'learning_rate': [5e-1, 5e-2, 1e-2, 1e-3], # 1e-2
         #'epochs': [5, 10, 20]
-        'epochs': [10]
+        'mismatch': [.8, .5, .2]
     }
 
 
-    runs_per_experiment = 3 # balance b/w trials and hyperparams to test
+    runs_per_experiment = 1 # balance b/w trials and hyperparams to test
 
     results_dict = {'defaults': default_dict}
 
@@ -162,14 +165,6 @@ def run_pickle_data(pickle_file):
 
     plot_complex_learning_curve(results_dict, logx_scale=False)
     #plot_complexity_curve(results_dict, logx_scale=True)
-
-
-def prepare(args):
-    loaders, model, criterion = im2recipe(args) if args.model == 'im2recipe' else recipe2im(args)
-    if torch.cuda.is_available():
-        model = model.cuda()
-
-    return loaders, model, criterion
 
 
 def generate_metrics(args, metric_store):
@@ -264,14 +259,9 @@ def generate_metrics(args, metric_store):
 
 
 def run(args, model_inputs=None):
-    '''
-    TODOs:
-        1) add args as input to im2recipe, recipe2im, train, validate functions
-        2) add train_loss and avg_train_loss as outputs to train
-        3) add avg_val_loss as output to validate
-    '''
-    #loaders, model, criterion = model_inputs
-    loaders, model, criterion = prepare(args)
+    loaders, model, criterion = im2recipe(args)
+    if torch.cuda.is_available():
+        model = model.cuda()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
@@ -281,8 +271,8 @@ def run(args, model_inputs=None):
     val_median_history = np.zeros(args.epochs)
 
     for epoch_idx in range(args.epochs):
-        avg_train_loss, (train_median, train_recall) = train(epoch, loaders[0], model, optimizer, criterion, args)
-        avg_val_loss, (val_median, val_recall) = validate(epoch, loaders[1], model, criterion, args)
+        avg_train_loss, (train_median, train_recall) = train(epoch_idx, loaders[0], model, optimizer, criterion, args)
+        avg_val_loss, (val_median, val_recall) = validate(epoch_idx, loaders[1], model, criterion, args)
 
         avg_train_loss = avg_train_loss.item()
         avg_val_loss = avg_val_loss.item()
@@ -299,13 +289,278 @@ def run(args, model_inputs=None):
     #return train_loss_history, val_loss_history, train_perp_history, val_perp_history, train_median_history, val_median_history
     return train_loss_history, val_loss_history, train_median_history, val_median_history
 
+if not(torch.cuda.device_count()):
+    device = torch.device(*('cpu',0))
+else:
+    torch.cuda.manual_seed(1234)
+    device = torch.device(*('cuda',0))
 
+
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+
+def train(epoch, data_loader, model, optimizer, criterion, args):
+    print('Training')
+    iter_time = AverageMeter()
+    losses = AverageMeter()
+    # acc = AverageMeter()
+
+    for idx, (data, target) in enumerate(data_loader):
+        start = time.time()
+        # use index 0 if criterion is CosineSimilarity, index 1 for image class
+        data = [data[i].to(device) for i in range(len(data))]
+        target = [target[i].to(device) for i in range(len(target))]
+
+        #############################################################################
+        # TODO: Complete the body of training loop                                  #
+        #       1. forward data batch to the model                                  #
+        #       2. Compute batch loss                                               #
+        #       3. Compute gradients and update model parameters                    #
+        #############################################################################
+        # Referenced
+        # https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html#optimizing-the-model-parameters
+        out_image, out_recipe, out_image_reg, out_recipe_reg = model(data)
+        if args.semantic_reg:
+            cos_loss = criterion[0](out_image, out_recipe, target[0])
+            image_loss = criterion[1](out_image_reg, target[1])
+            recipe_loss = criterion[1](out_recipe_reg, target[2])
+            loss = args.cos_weight * cos_loss + args.image_weight * image_loss + args.recipe_weight * recipe_loss
+        else:
+            loss = criterion[0](out_image, out_recipe, target[0])
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        #############################################################################
+        #                              END OF YOUR CODE                             #
+        #############################################################################
+        if args.generate_metrics:
+            if idx == 0:
+                img_store = out_image.data.cpu().numpy()
+                recipe_store = out_recipe.data.cpu().numpy()
+                recipe_id_store = target[-1].data.cpu().numpy()
+            else:
+                img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
+                recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
+                recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
+        # batch_acc = accuracy(out, target)
+
+        losses.update(loss, out_image.shape[0])
+        # acc.update(batch_acc, out.shape[0])
+
+        iter_time.update(time.time() - start)
+        if idx % 10 == 0:
+            print(('Epoch: [{0}][{1}/{2}]\t'
+                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f} avg)\t'
+                   'Loss {loss.val:.4f} ({loss.avg:.4f} avg)\t'
+                   # 'Prec @1 {top1.val:.4f} ({top1.avg:.4f})\t'
+                   )
+                  .format(epoch, idx, len(data_loader), iter_time=iter_time, loss=losses
+                          # , top1=acc
+                          ))
+    metric_results = None
+    if args.generate_metrics:
+        metric_store = {}
+        metric_store['image'] = img_store
+        metric_store['recipe'] = recipe_store
+        metric_store['recipe_id'] = recipe_id_store
+
+        '''
+        import pickle
+        pickle_file = 'metric_store.pkl'.format(epoch)
+        f=open(pickle_file, 'wb')
+        pickle.dump(metric_store, f)
+        f.close()
+        #return losses.avg, metric_store
+        '''
+        metric_results = generate_metrics(args, metric_store) # returns median, recall
+
+    return losses.avg, metric_results
+
+
+def validate(epoch, val_loader, model, criterion, args):
+    print('Validation')
+    iter_time = AverageMeter()
+    losses = AverageMeter()
+    # acc = AverageMeter()
+
+    # num_class = 10
+    # cm = torch.zeros(num_class, num_class)
+    # evaluation loop
+    for idx, (data, target) in enumerate(val_loader):
+        start = time.time()
+        data = [data[i].to(device) for i in range(len(data))]
+        target = [target[i].to(device) for i in range(len(target))]
+
+        #############################################################################
+        # TODO: Complete the body of training loop                                  #
+        #       HINT: torch.no_grad()                                               #
+        #############################################################################
+        with torch.no_grad():
+            out_image, out_recipe, out_image_reg, out_recipe_reg = model(data)
+            if args.semantic_reg:
+                cos_loss = criterion[0](out_image, out_recipe, target[0])
+                image_loss = criterion[1](out_image_reg, target[1])
+                recipe_loss = criterion[1](out_recipe_reg, target[2])
+                loss = args.cos_weight * cos_loss + args.image_weight * image_loss + args.recipe_weight * recipe_loss
+            else:
+                loss = criterion[0](out_image, out_recipe, target[0])
+        #############################################################################
+        #                              END OF YOUR CODE                             #
+        #############################################################################
+        if args.generate_metrics:
+            if idx == 0:
+                img_store = out_image.data.cpu().numpy()
+                recipe_store = out_recipe.data.cpu().numpy()
+                recipe_id_store = target[-1].data.cpu().numpy()
+            else:
+                img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
+                recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
+                recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
+        # batch_acc = accuracy(out, target)
+
+        # update confusion matrix
+        # _, preds = torch.max(out, 1)
+        # for t, p in zip(target.view(-1), preds.view(-1)):
+        #     cm[t.long(), p.long()] += 1
+
+        losses.update(loss, out_image.shape[0])
+        # acc.update(batch_acc, out.shape[0])
+
+        iter_time.update(time.time() - start)
+        if idx % 10 == 0:
+            print(('Epoch: [{0}][{1}/{2}]\t'
+                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t'
+                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  )
+                  .format(epoch, idx, len(val_loader), iter_time=iter_time, loss=losses
+                          # , top1=acc
+                          ))
+    # cm = cm / cm.sum(1)
+    # per_cls_acc = cm.diag().detach().numpy().tolist()
+    # for i, acc_i in enumerate(per_cls_acc):
+    #     print("Accuracy of Class {}: {:.4f}".format(i, acc_i))
+    #
+    # print("* Prec @1: {top1.avg:.4f}".format(top1=acc))
+    # return acc.avg, cm
+    metric_results = None
+    if args.generate_metrics:
+        metric_store = {}
+        metric_store['image'] = img_store
+        metric_store['recipe'] = recipe_store
+        metric_store['recipe_id'] = recipe_id_store
+
+        '''
+        import pickle
+        pickle_file = 'metric_store.pkl'.format(epoch)
+        f=open(pickle_file, 'wb')
+        pickle.dump(metric_store, f)
+        f.close()
+        #return losses.avg, metric_store
+        '''
+        metric_results = generate_metrics(args, metric_store) # returns median, recall
+
+    return losses.avg, metric_results
+
+
+# def adjust_learning_rate(optimizer, epoch, args):
+#     epoch += 1
+#     if epoch <= args.warmup:
+#         lr = args.learning_rate * epoch / args.warmup
+#     elif epoch > args.steps[1]:
+#         lr = args.learning_rate * 0.01
+#     elif epoch > args.steps[0]:
+#         lr = args.learning_rate * 0.1
+#     else:
+#         lr = args.learning_rate
+#     for param_group in optimizer.param_groups:
+#         param_group['lr'] = lr
+
+
+def im2recipe(args):
+    # This is same setup from study
+    transform_train = transforms.Compose([
+        transforms.Resize(256),  # rescale the image keeping the original aspect ratio
+        transforms.CenterCrop(256),  # we get only the center of that rescaled
+        transforms.RandomCrop(224),  # random crop within the center crop
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    transform_val = transforms.Compose([
+        transforms.Resize(256), # rescale the image keeping the original aspect ratio
+        transforms.CenterCrop(224), # we get only the center of that rescaled
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train')
+    num_images = len(image_loader)
+    indexes = np.arange(num_images)
+    # np.random.shuffle(indexes)
+    train_cutoff = int(args.train_percent * num_images)
+    val_cutoff = train_cutoff + int(args.val_percent * num_images)
+    train_indexes = indexes[:train_cutoff]
+    image_loader.all_idx = train_indexes
+    val_indexes = indexes[train_cutoff:val_cutoff]
+    if torch.cuda.is_available():
+        train_loader = torch.utils.data.DataLoader(
+            image_loader, batch_size=args.batch_size, sampler=train_indexes,
+            num_workers=args.workers, pin_memory=True)
+        val_loader = torch.utils.data.DataLoader(
+            ImageLoader(
+                args.image_path,
+                transform_val,
+                data_path=args.data_path,
+                partition='val',
+                all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes,
+            num_workers=args.workers, pin_memory=True)
+    else:
+        train_loader = torch.utils.data.DataLoader(
+            image_loader, batch_size=args.batch_size, sampler=train_indexes)
+        val_loader = torch.utils.data.DataLoader(
+            ImageLoader(
+                args.image_path,
+                transform_val,
+                data_path=args.data_path,
+                partition='val',
+                all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes)
+
+    model = Im2Recipe(args)
+
+    cos_criterion = nn.CosineEmbeddingLoss(0.1).to(device)
+    # found this in other impl
+    if args.semantic_reg:
+        # weights = torch.ones(args.num_classes)
+        # weights[0] = 0
+        # this causes nan to be thrown
+        # weights_class = torch.Tensor(args.num_classes).fill_(1)
+        # weights_class[0] = 0  # the background class is set to 0, i.e. ignore
+        entropy_criterion = nn.CrossEntropyLoss().to(device)
+    else:
+        entropy_criterion = None
+    return (train_loader, val_loader), model, (cos_criterion, entropy_criterion)
 
 if __name__ == '__main__':
     #model_inputs = pre_process()
-    #main(model_inputs)
+    main(model_inputs=None)
     #run_pickle_data('experiments/results_dict.pkl')
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='configs/config_fullmodel.yaml')
-    args = parser.parse_args()
-    generate_metrics(args, 'metric_store_0.pkl')
+    #parser = argparse.ArgumentParser()
+    #parser.add_argument('--config', default='configs/config_fullmodel.yaml')
+    #args = parser.parse_args()
+    #generate_metrics(args, 'metric_store_0.pkl')

@@ -117,7 +117,15 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
-
+        if args.generate_metrics:
+            if idx == 0:
+                img_store = out_image.data.cpu().numpy()
+                recipe_store = out_recipe.data.cpu().numpy()
+                recipe_id_store = target[-1].data.cpu().numpy()
+            else:
+                img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
+                recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
+                recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
         # batch_acc = accuracy(out, target)
 
         losses.update(loss, out_image.shape[0])
@@ -133,7 +141,24 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
                   .format(epoch, idx, len(data_loader), iter_time=iter_time, loss=losses
                           # , top1=acc
                           ))
-    return losses.avg
+    metric_results = None
+    if args.generate_metrics:
+        metric_store = {}
+        metric_store['image'] = img_store
+        metric_store['recipe'] = recipe_store
+        metric_store['recipe_id'] = recipe_id_store
+
+        '''
+        import pickle
+        pickle_file = 'metric_store.pkl'.format(epoch)
+        f=open(pickle_file, 'wb')
+        pickle.dump(metric_store, f)
+        f.close()
+        #return losses.avg, metric_store
+        '''
+        metric_results = generate_metrics(args, metric_store) # returns median, recall
+
+    return losses.avg, metric_results
 
 
 def validate(epoch, val_loader, model, criterion, args):
@@ -252,8 +277,7 @@ def im2recipe(args):
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train',
-                               mismatch=args.mismatch)
+    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train')
     num_images = len(image_loader)
     indexes = np.arange(num_images)
     # np.random.shuffle(indexes)
@@ -272,7 +296,6 @@ def im2recipe(args):
                 transform_val,
                 data_path=args.data_path,
                 partition='val',
-                mismatch=args.mismatch,
                 all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes,
             num_workers=args.workers, pin_memory=True)
     else:
@@ -284,7 +307,6 @@ def im2recipe(args):
                 transform_val,
                 data_path=args.data_path,
                 partition='val',
-                mismatch=args.mismatch,
                 all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes)
 
     model = Im2Recipe(args)
@@ -331,7 +353,7 @@ def main():
         # adjust_learning_rate(optimizer, epoch, args)
 
         # train loop
-        train_loss = train(epoch, loaders[0], model, optimizer, criterion, args)
+        train_loss, _ = train(epoch, loaders[0], model, optimizer, criterion, args)
 
         val_loss, _ = validate(epoch, loaders[1], model, criterion, args)
 

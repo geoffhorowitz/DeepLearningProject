@@ -43,8 +43,8 @@ class Im2Recipe(nn.Module):
         out_image = self.frozen_image_model(x[0])
         out_image = self.unfrozen_image_layer(out_image.reshape((out_image.shape[0], out_image.shape[1])))
 
-        ingred_output = self.ingred_model(x)
-        recipe_output = self.recipe_model(x)
+        ingred_output = self.ingred_model(x) #target added for transformer
+        recipe_output = self.recipe_model(x) # target added for transformer
         # print(ingred_output.size())
         # print(recipe_output.size())
         out_recipe = torch.cat((recipe_output, ingred_output), 1)

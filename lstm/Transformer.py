@@ -30,7 +30,7 @@ import random
 
 class TransformerTranslator(nn.Module):
     """
-    A single-layer Transformer which encodes a sequence of text and 
+    A single-layer Transformer which encodes a sequence of text and
     performs binary classification.
 
     The model has a vocab size of V, works on
@@ -50,7 +50,7 @@ class TransformerTranslator(nn.Module):
         """
         super(TransformerTranslator, self).__init__()
         assert hidden_dim % num_heads == 0
-        
+
         self.num_heads = num_heads
         self.word_embedding_dim = hidden_dim
         self.hidden_dim = hidden_dim
@@ -62,9 +62,9 @@ class TransformerTranslator(nn.Module):
         self.dim_k = dim_k
         self.dim_v = dim_v
         self.dim_q = dim_q
-        
+
         seed_torch(0)
-        
+
         ##############################################################################
         # TODO:
         # Deliverable 1: Initialize what you need for the embedding lookup.          #
@@ -80,8 +80,8 @@ class TransformerTranslator(nn.Module):
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
-        
-        
+
+
         ##############################################################################
         # Deliverable 2: Initializations for multi-head self-attention.              #
         # You don't need to do anything here. Do not modify this code.               #
@@ -91,7 +91,7 @@ class TransformerTranslator(nn.Module):
         self.k1 = nn.Linear(self.hidden_dim, self.dim_k)
         self.v1 = nn.Linear(self.hidden_dim, self.dim_v)
         self.q1 = nn.Linear(self.hidden_dim, self.dim_q)
-        
+
         # Head #2
         self.k2 = nn.Linear(self.hidden_dim, self.dim_k)
         self.v2 = nn.Linear(self.hidden_dim, self.dim_v)
@@ -106,10 +106,10 @@ class TransformerTranslator(nn.Module):
         self.attention_head_projection = nn.Linear(self.dim_v * self.num_heads, self.hidden_dim)
         self.norm_mh = nn.LayerNorm(self.hidden_dim)
 
-        
+
         ##############################################################################
         # TODO:
-        # Deliverable 3: Initialize what you need for the feed-forward layer.        # 
+        # Deliverable 3: Initialize what you need for the feed-forward layer.        #
         # Don't forget the layer normalization.                                      #
         ##############################################################################
         self.ff_1 = nn.Linear(self.hidden_dim, self.dim_feedforward)
@@ -121,7 +121,7 @@ class TransformerTranslator(nn.Module):
         #                               END OF YOUR CODE                             #
         ##############################################################################
 
-        
+
         ##############################################################################
         # TODO:
         # Deliverable 4: Initialize what you need for the final layer (1-2 lines).   #
@@ -132,7 +132,7 @@ class TransformerTranslator(nn.Module):
         #                               END OF YOUR CODE                             #
         ##############################################################################
 
-        
+
     def forward(self, inputs):
         """
         This function computes the full Transformer forward pass.
@@ -150,7 +150,7 @@ class TransformerTranslator(nn.Module):
         # You should only be calling TransformerTranslator class methods here.      #
         #############################################################################
         inputs = inputs.to(self.device)
-        embedded = self.embed(inputs)
+        embedded = inputs # inputs are already embedded
         mha_input = embedded
         for i in range(1):
             mha_out = self.multi_head_attention(mha_input)
@@ -163,8 +163,8 @@ class TransformerTranslator(nn.Module):
         #                               END OF YOUR CODE                             #
         ##############################################################################
         return outputs
-    
-    
+
+
     def embed(self, inputs):
         """
         :param inputs: intTensor of shape (N,T)
@@ -184,18 +184,18 @@ class TransformerTranslator(nn.Module):
         #                               END OF YOUR CODE                             #
         ##############################################################################
         return embeddings
-        
+
 
     def multi_head_attention(self, inputs):
         """
         :param inputs: float32 Tensor of shape (N,T,H)
         :returns outputs: float32 Tensor of shape (N,T,H)
-        
+
         Traditionally we'd include a padding mask here, so that pads are ignored.
         This is a simplified implementation.
         """
-        
-        
+
+
         #############################################################################
         # TODO:
         # Deliverable 2: Implement multi-head self-attention followed by add + norm.#
@@ -236,19 +236,19 @@ class TransformerTranslator(nn.Module):
 
         # norm whole thing
         outputs = self.norm_mh(res_combined)
-        
+
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
         return outputs
-    
-    
+
+
     def feedforward_layer(self, inputs):
         """
         :param inputs: float32 Tensor of shape (N,T,H)
         :returns outputs: float32 Tensor of shape (N,T,H)
         """
-        
+
         #############################################################################
         # TODO:
         # Deliverable 3: Implement the feedforward layer followed by add + norm.    #
@@ -258,37 +258,37 @@ class TransformerTranslator(nn.Module):
         #############################################################################
         # feed forward
         ff_out = self.ff_2(self.ff_relu(self.ff_1(inputs)))
-        
+
         # add residual
         res_combined = ff_out + inputs
 
         # norm
         outputs = self.norm_ff(res_combined)
-        
+
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
         return outputs
-        
-    
+
+
     def final_layer(self, inputs):
         """
         :param inputs: float32 Tensor of shape (N,T,H)
         :returns outputs: float32 Tensor of shape (N,T,V)
         """
-        
+
         #############################################################################
         # TODO:
         # Deliverable 4: Implement the final layer for the Transformer Translator.  #
         # This should only take about 1 line of code.                               #
         #############################################################################
         outputs = self.linear_out(inputs)
-                
+
         ##############################################################################
         #                               END OF YOUR CODE                             #
         ##############################################################################
         return outputs
-        
+
 
 def seed_torch(seed=0):
     random.seed(seed)
