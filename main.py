@@ -280,7 +280,7 @@ def im2recipe(args):
     image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train')
     num_images = len(image_loader)
     indexes = np.arange(num_images)
-    # np.random.shuffle(indexes)
+    np.random.shuffle(indexes)
     train_cutoff = int(args.train_percent * num_images)
     val_cutoff = train_cutoff + int(args.val_percent * num_images)
     train_indexes = indexes[:train_cutoff]
@@ -342,7 +342,7 @@ def main():
 
     loaders, model, criterion = im2recipe(args) if args.model == 'im2recipe' else recipe2im(args)
     print(torch.cuda.is_available())
-    model.frozen_image_model = torch.nn.DataParallel(model.frozen_image_model)
+    model.image_model = torch.nn.DataParallel(model.image_model)
     model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)

@@ -15,13 +15,14 @@ class Im2Recipe(nn.Module):
         # freeze the layers
         cnn_children = []
         for child in cnn.children():
-            for param in child.parameters():
-                param.requires_grad = False
+            if args.freeze_image:
+                for param in child.parameters():
+                    param.requires_grad = False
             cnn_children.append(child)
-        # remove final layer from frozen cnn
-        self.frozen_image_model = nn.Sequential(*cnn_children[:-1])
+        # remove final layer from cnn
+        self.image_model = nn.Sequential(*cnn_children[:-1])
         # 2048 is featureDim of input of last fc
-        self.unfrozen_image_layer = nn.Sequential(
+        self.fc_image_layer = nn.Sequential(
             nn.Linear(2048, args.embed_dim),
             nn.Tanh(),
             nn.LayerNorm(args.embed_dim)
@@ -40,8 +41,8 @@ class Im2Recipe(nn.Module):
             self.semantic_layer = None
 
     def forward(self, x):
-        out_image = self.frozen_image_model(x[0])
-        out_image = self.unfrozen_image_layer(out_image.reshape((out_image.shape[0], out_image.shape[1])))
+        out_image = self.image_model(x[0])
+        out_image = self.fc_image_layer(out_image.reshape((out_image.shape[0], out_image.shape[1])))
 
         ingred_output = self.ingred_model(x) #target added for transformer
         recipe_output = self.recipe_model(x) # target added for transformer

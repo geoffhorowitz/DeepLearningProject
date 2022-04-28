@@ -23,6 +23,9 @@ data:
   generate_metrics: True
   save_best: False
 
+image_model:
+  freeze_image: True
+
 ingredient_lstm:
   ingredient_lstm_dim: 300
   ingredient_embedding_dim: 300 # vocab size 30167 x 300 embedded
