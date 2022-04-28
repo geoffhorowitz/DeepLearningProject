@@ -11,7 +11,7 @@ import torchvision.models as models
 import word2vec
 
 #from lstm.custom_LSTM import LSTM
-#from lstm.Transformer import TransformerTranslator
+# from lstm.Transformer import TransformerTranslator
 
 '''
 reference ("_ref") models source:
@@ -69,7 +69,7 @@ class IngredModel(nn.Module):
 
         embedded = self.emb(x)
 
-        if self.args.recipe_model == 'transformer'
+        if self.args.recipe_model == 'transformer':
             output = self.model(embedded)
             print('recipe_out', output.shape)
             output = output[:, -1, :]
@@ -160,7 +160,7 @@ class RecipeModel(nn.Module):
         embedded = x
         #print(x.shape)
 
-        if self.args.recipe_model == 'transformer'
+        if self.args.recipe_model == 'transformer':
             output = self.model(x)
             print('recipe_out', output.shape)
             output = output[:, -1, :]
