@@ -355,7 +355,9 @@ def main():
         # train loop
         train_loss, _ = train(epoch, loaders[0], model, optimizer, criterion, args)
 
-        val_loss, _ = validate(epoch, loaders[1], model, criterion, args)
+        val_loss, val_medR = validate(epoch, loaders[1], model, criterion, args)
+        if args.generate_metrics:
+            val_loss = val_medR[0]
 
         if val_loss < best:
             best = val_loss

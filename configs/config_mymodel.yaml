@@ -25,7 +25,7 @@ data:
   data_path: 'data'
   image_path: 'images'
   save_best: False
-  generate_metrics: False
+  generate_metrics: True
 
 image_model:
   freeze_image: True
