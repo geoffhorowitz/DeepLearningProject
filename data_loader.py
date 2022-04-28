@@ -170,7 +170,7 @@ class ImageLoader(data.Dataset):
         #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class, img_id, rec_id]
         #     else:
         #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_id, rec_id]
-        return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class]
+        return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class, img_id, rec_id]
 
     def __len__(self):
         return len(self.ids)

@@ -92,7 +92,7 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
         start = time.time()
         # use index 0 if criterion is CosineSimilarity, index 1 for image class
         data = [data[i].to(device) for i in range(len(data))]
-        target = [target[i].to(device) for i in range(len(target))]
+        target = [target[i].to(device) for i in range(len(target)-2)]
 
         #############################################################################
         # TODO: Complete the body of training loop                                  #
@@ -174,7 +174,7 @@ def validate(epoch, val_loader, model, criterion, args):
     for idx, (data, target) in enumerate(val_loader):
         start = time.time()
         data = [data[i].to(device) for i in range(len(data))]
-        target = [target[i].to(device) for i in range(len(target))]
+        target = [target[i].to(device) for i in range(len(target)-2)]
 
         #############################################################################
         # TODO: Complete the body of training loop                                  #
