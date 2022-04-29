@@ -326,7 +326,7 @@ def im2recipe(args):
         entropy_criterion = nn.CrossEntropyLoss().to(device)
     else:
         entropy_criterion = None
-    return (train_loader, val_loader), model, (cos_criterion, entropy_criterion)
+    return (train_loader, val_loader), model, (cos_criterion, entropy_criterion), val_indexes
 
 
 def recipe2im(args):
@@ -337,18 +337,10 @@ def recipe2im(args):
 def retrieval(metric_store):
     img_store = metric_store['image']
     recipe_store = metric_store['recipe']
-    recipe_id_store = metric_store['recipe_id']
-    # TODO: matrix multiply for dot product between img and recipe outputs, return index of highest output
-    # return image and recipe at that index
     sims = np.matmul(img_store, recipe_store.transpose())
-    print(sims.shape)
-    print(sims)
-    # determine which one
-    print(np.argmax(sims, axis=0))
-    print(np.argmax(sims, axis=1))
-    retrieved_image = retrieved_recipe = None
-    return retrieved_image, retrieved_recipe
-
+    retrieved_id = np.argmax(sims, axis=1)
+    retrieved_val = np.max(sims, axis=1)
+    return retrieved_id, retrieved_val
 
 
 def main():
@@ -361,7 +353,7 @@ def main():
         for k, v in config[key].items():
             setattr(args, k, v)
 
-    loaders, model, criterion = im2recipe(args) if args.model == 'im2recipe' else recipe2im(args)
+    loaders, model, criterion, val_indexes = im2recipe(args) if args.model == 'im2recipe' else recipe2im(args)
     print(torch.cuda.is_available())
     model.image_model = torch.nn.DataParallel(model.image_model)
     model.to(device)
@@ -369,19 +361,20 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     best = math.inf
     # best_cm = None
-    best_model = None
+    best_model = best_retrieved = None
     for epoch in range(args.epochs):
         # adjust_learning_rate(optimizer, epoch, args)
 
         # train loop
         train_loss, _ = train(epoch, loaders[0], model, optimizer, criterion, args)
 
-        val_loss, val_medR, _ = validate(epoch, loaders[1], model, criterion, args)
-        if args.generate_metrics:
+        val_loss, val_medR, val_retrieval = validate(epoch, loaders[1], model, criterion, args)
+        if args.generate_metrics and False:
             val_loss = val_medR[0]
 
         if val_loss < best:
             best = val_loss
+            best_retrieved = val_retrieval
             # best_cm = cm
             best_model = copy.deepcopy(model)
 
@@ -393,6 +386,21 @@ def main():
 
     if args.save_best:
         torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + '.pth')
+        image_loader = ImageLoader(args.image_path, data_path=args.data_path, partition='val', evaluate=True)
+        pairs = []
+        for (val_ind, ret_id, ret_val) in zip(val_indexes, best_retrieved[0], best_retrieved[1]):
+            given = image_loader[val_ind]
+            ret = image_loader[val_indexes[ret_id]]
+            pairs.append({'given': given, 'ret': ret, 'val': ret_val})
+        pairs.sort(reverse=True, key=lambda p: p['val'])
+        results_file = open('image_results.txt', 'w')
+        for pair in pairs:
+            given = pair['given']
+            ret = pair['ret']
+            val = pair['val']
+            # only save images for now
+            results_file.write('Given image: ' + given[0] + ', Retrieved image: ' + ret[0] + ', Val: {0:.4f}'.format(val) + '\n')
+        results_file.close()
 
 
 if __name__ == '__main__':

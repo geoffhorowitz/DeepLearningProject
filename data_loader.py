@@ -40,7 +40,8 @@ def default_loader(path):
 
 class ImageLoader(data.Dataset):
     def __init__(self, img_path, transform=None, target_transform=None, mismatch=0.8,
-                 loader=default_loader, square=False, data_path=None, partition=None, sem_reg=None, all_idx=None):
+                 loader=default_loader, square=False, data_path=None, partition=None, sem_reg=None, all_idx=None,
+                 evaluate=False):
 
         if data_path == None:
             raise Exception('No data path specified.')
@@ -74,6 +75,7 @@ class ImageLoader(data.Dataset):
 
         # added in for proper mismatch search
         self.all_idx = all_idx if all_idx is not None else range(len(self.ids))
+        self.evaluate = evaluate
 
     def __getitem__(self, index):
         recipId = self.ids[index]
@@ -128,14 +130,14 @@ class ImageLoader(data.Dataset):
             # path = self.imgPath + rndimgs[imgIdx]['id']
 
         # instructions
-        instrs = sample['intrs']
+        instrs = instrs_orig = sample['intrs']
         itr_ln = len(instrs)
         t_inst = np.zeros((self.maxInst, np.shape(instrs)[1]), dtype=np.float32)
         t_inst[:itr_ln][:] = instrs
         instrs = torch.FloatTensor(t_inst)
 
         # ingredients
-        ingrs = sample['ingrs'].astype(int)
+        ingrs = ingrs_orig = sample['ingrs'].astype(int)
         ingrs = torch.LongTensor(ingrs)
         igr_ln = max(np.nonzero(sample['ingrs'])[0]) + 1
 
@@ -170,6 +172,8 @@ class ImageLoader(data.Dataset):
         #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class, img_id, rec_id]
         #     else:
         #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_id, rec_id]
+        if self.evaluate:
+            return [path, instrs_orig, ingrs_orig]
         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class, img_id, rec_id]
 
     def __len__(self):
