@@ -88,7 +88,7 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
         start = time.time()
         # use index 0 if criterion is CosineSimilarity, index 1 for image class
         data = [data[i].to(device) for i in range(len(data))]
-        target = [target[i].to(device) for i in range(len(target))]
+        target = [target[i].to(device) for i in range(len(target)-2)]
 
         #############################################################################
         # TODO: Complete the body of training loop                                  #
@@ -170,7 +170,7 @@ def validate(epoch, val_loader, model, criterion, args):
     for idx, (data, target) in enumerate(val_loader):
         start = time.time()
         data = [data[i].to(device) for i in range(len(data))]
-        target = [target[i].to(device) for i in range(len(target))]
+        target = [target[i].to(device) for i in range(len(target)-2)]
 
         #############################################################################
         # TODO: Complete the body of training loop                                  #
@@ -273,7 +273,8 @@ def im2recipe(args):
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train')
+    image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train',
+                               mismatch=args.mismatch)
     num_images = len(image_loader)
     indexes = np.arange(num_images)
     np.random.shuffle(indexes)
@@ -292,6 +293,7 @@ def im2recipe(args):
                 transform_val,
                 data_path=args.data_path,
                 partition='val',
+                mismatch=args.mismatch,
                 all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes,
             num_workers=args.workers, pin_memory=True)
     else:
@@ -303,6 +305,7 @@ def im2recipe(args):
                 transform_val,
                 data_path=args.data_path,
                 partition='val',
+                mismatch=args.mismatch,
                 all_idx=val_indexes), batch_size=args.batch_size, sampler=val_indexes)
 
     model = Im2Recipe(args)
