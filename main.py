@@ -350,7 +350,7 @@ def main():
         train_loss, _ = train(epoch, loaders[0], model, optimizer, criterion, args)
 
         val_loss, val_medR, val_retrieval = validate(epoch, loaders[1], model, criterion, args)
-        if args.generate_metrics and False:
+        if args.generate_metrics and val_medR is not None:
             val_loss = val_medR[0]
 
         if val_loss < best:

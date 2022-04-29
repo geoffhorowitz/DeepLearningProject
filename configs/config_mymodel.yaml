@@ -2,7 +2,7 @@ Train:
   batch_size: 2
   learning_rate: 0.0001
   reg: 0.00005
-  epochs: 15
+  epochs: 2
   steps: [6, 8]
   warmup: 0
   momentum: 0.9
@@ -24,8 +24,9 @@ network:
 data:
   data_path: 'data'
   image_path: 'images'
-  save_best: False
+  save_best: True
   generate_metrics: True
+  metric_type: 'rank' # rank or accuracy
 
 image_model:
   freeze_image: True
