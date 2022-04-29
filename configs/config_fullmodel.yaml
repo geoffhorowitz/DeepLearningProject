@@ -23,6 +23,7 @@ data:
   data_path: '../../../../../../../Desktop/DL/data'
   image_path: '../../../../../../../Desktop/DL/data/images'
   generate_metrics: False
+  metric_type: 'accuracy' # rank or accuracy
   save_best: False
 
 image_model:

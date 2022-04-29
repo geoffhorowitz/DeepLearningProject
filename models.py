@@ -9,7 +9,7 @@ class Im2Recipe(nn.Module):
 
     def __init__(self, args):
         super(Im2Recipe, self).__init__()
-
+        
         # Image model
         cnn = models.resnet50(pretrained=True)
         # freeze the layers
@@ -38,7 +38,7 @@ class Im2Recipe(nn.Module):
         self.recipe_norm = nn.LayerNorm(args.embed_dim)
         self.ingred_model = IngredModel(args)
         self.recipe_model = RecipeModel(args)
-        if args.semantic_reg:
+        if args.semantic_reg or (args.generate_metrics and args.metric_type == 'accuracy'):
             self.semantic_layer = nn.Linear(args.embed_dim, args.num_classes)
         else:
             self.semantic_layer = None
