@@ -227,7 +227,7 @@ def validate(epoch, val_loader, model, criterion, args):
     #
     # print("* Prec @1: {top1.avg:.4f}".format(top1=acc))
     # return acc.avg, cm
-    metric_results = None
+    metric_results = retrieved = None
     if args.generate_metrics:
         metric_store = {}
         metric_store['image'] = img_store
@@ -243,8 +243,9 @@ def validate(epoch, val_loader, model, criterion, args):
         #return losses.avg, metric_store
         '''
         metric_results = generate_metrics(args, metric_store) # returns median, recall
+        retrieved = retrieval(metric_store)
 
-    return losses.avg, metric_results
+    return losses.avg, metric_results, retrieved
 
 
 # def adjust_learning_rate(optimizer, epoch, args):
@@ -333,6 +334,23 @@ def recipe2im(args):
     return None, None, None
 
 
+def retrieval(metric_store):
+    img_store = metric_store['image']
+    recipe_store = metric_store['recipe']
+    recipe_id_store = metric_store['recipe_id']
+    # TODO: matrix multiply for dot product between img and recipe outputs, return index of highest output
+    # return image and recipe at that index
+    sims = np.matmul(img_store, recipe_store.transpose())
+    print(sims.shape)
+    print(sims)
+    # determine which one
+    print(np.argmax(sims, axis=0))
+    print(np.argmax(sims, axis=1))
+    retrieved_image = retrieved_recipe = None
+    return retrieved_image, retrieved_recipe
+
+
+
 def main():
     global args
     args = parser.parse_args()
@@ -358,7 +376,7 @@ def main():
         # train loop
         train_loss, _ = train(epoch, loaders[0], model, optimizer, criterion, args)
 
-        val_loss, val_medR = validate(epoch, loaders[1], model, criterion, args)
+        val_loss, val_medR, _ = validate(epoch, loaders[1], model, criterion, args)
         if args.generate_metrics:
             val_loss = val_medR[0]
 
