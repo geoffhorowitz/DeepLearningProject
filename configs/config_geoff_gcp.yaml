@@ -21,7 +21,7 @@ data:
   data_path: 'data'
   image_path: 'data/images'
   generate_metrics: True
-  metric_type: 'accuracy' # rank or accuracy
+  metric_type: 'both' # rank or accuracy or both
   save_best: False
 
 image_model:
@@ -32,11 +32,13 @@ ingredient_lstm:
   ingredient_embedding_dim: 300 # vocab size 30167 x 300 embedded
   ingredient_w2v_path: 'data/vocab.bin'
   ingred_model_variant: 'base' # base, custom_basic, custom_fusion, paper
+  #ingred_dropout: .2 
 
 recipe_lstm:
   recipe_lstm_dim: 1024
   recipe_embedding_dim: 1024
   recipe_model_variant: 'base' # base, custom_basic, custom_fusion, paper
+  #recipe_dropout: .2
 
 transformer:
     hidden_dim: 256
