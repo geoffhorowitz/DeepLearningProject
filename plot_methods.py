@@ -34,10 +34,10 @@ def plot_complex_learning_curve(results_dict, logx_scale=False):
             train_accrec_std = results_dict[key][exp_val]['train_recacc_std']
             val_accrec_mean = results_dict[key][exp_val]['val_recacc_mean']
             val_accrec_std = results_dict[key][exp_val]['val_recacc_std']
-            
+
             # Plot learning curve
-            fig, ax = plt.subplots(1, 1)
-            fig.tight_layout(pad=3.5)
+            #fig, ax = plt.subplots(1, 1)
+            #fig.tight_layout(pad=3.5)
             alpha = .2
             train_color = 'r'
             test_color = 'g'
@@ -49,6 +49,7 @@ def plot_complex_learning_curve(results_dict, logx_scale=False):
 
             # Loss plot
             #ax = axs[0]
+            fig, ax = plt.subplots(1, 1)
             ax.fill_between(training_range, train_loss_mean - train_loss_std, train_loss_mean + train_loss_std,
                             alpha=alpha, color=train_color)
             ax.fill_between(training_range, val_loss_mean - val_loss_std, val_loss_mean + val_loss_std,
@@ -64,11 +65,12 @@ def plot_complex_learning_curve(results_dict, logx_scale=False):
             ax.set_ylabel("Loss")
             ax.legend(loc="best")
             ax.grid(linestyle='dotted')
-            plt.savefig("Loss_curve.png")
-            ax.clear()
+            plt.savefig(save_path[:-4]+'_loss'+save_path[-4:])
+            plt.close(fig)
 
             # accuracy plot
             #ax = axs[-1]
+            fig, ax = plt.subplots(1, 1)
             ax.fill_between(training_range, train_acc_mean - train_acc_std, train_acc_mean + train_acc_std,
                             alpha=alpha, color=train_color)
             ax.fill_between(training_range, val_acc_mean - val_acc_std, val_acc_mean + val_acc_std,
@@ -85,10 +87,11 @@ def plot_complex_learning_curve(results_dict, logx_scale=False):
             ax.legend(loc="best")
             ax.grid(linestyle='dotted')
             plt.savefig(save_path[:-4]+'_median'+save_path[-4:])
-            ax.clear()
-            
+            plt.close(fig)
+
             # accuracy plot - img
             #ax = axs[-1]
+            fig, ax = plt.subplots(1, 1)
             ax.fill_between(training_range, train_accim_mean - train_accim_std, train_accim_mean + train_accim_std,
                             alpha=alpha, color=train_color)
             ax.fill_between(training_range, val_accim_mean - val_accim_std, val_accim_mean + val_accim_std,
@@ -105,10 +108,11 @@ def plot_complex_learning_curve(results_dict, logx_scale=False):
             ax.legend(loc="best")
             ax.grid(linestyle='dotted')
             plt.savefig(save_path[:-4]+'_imacc'+save_path[-4:])
-            ax.clear()
-            
+            plt.close(fig)
+
             # accuracy plot - recipe
             #ax = axs[-1]
+            fig, ax = plt.subplots(1, 1)
             ax.fill_between(training_range, train_accrec_mean - train_accrec_std, train_accrec_mean + train_accrec_std,
                             alpha=alpha, color=train_color)
             ax.fill_between(training_range, val_accrec_mean - val_accrec_std, val_accrec_mean + val_accrec_std,
@@ -125,11 +129,11 @@ def plot_complex_learning_curve(results_dict, logx_scale=False):
             ax.legend(loc="best")
             ax.grid(linestyle='dotted')
             plt.savefig(save_path[:-4]+'_recacc'+save_path[-4:])
-            ax.clear()
+            plt.close(fig)
 
 
             #fig.savefig(save_path)
-            plt.close(fig)
+            #plt.close(fig)
 
     best_fh.close()
 
@@ -182,8 +186,8 @@ def plot_complexity_curve(results_dict, logx_scale=False):
             training_range[exp_count]  = exp_val
 
         # Plot learning curve
-        fig, ax = plt.subplots(1, 1)
-        fig.tight_layout(pad=3.5)
+        #fig, axs = plt.subplots(1, 1)
+        #fig.tight_layout(pad=3.5)
         alpha = .2
         train_color = 'r'
         test_color = 'g'
@@ -198,6 +202,7 @@ def plot_complexity_curve(results_dict, logx_scale=False):
 
         # Loss plot
         #ax = axs[0]
+        fig, ax = plt.subplots(1, 1)
         ax.fill_between(training_range, train_loss_mean - train_loss_std, train_loss_mean + train_loss_std,
                         alpha=alpha, color=train_color)
         ax.fill_between(training_range, val_loss_mean - val_loss_std, val_loss_mean + val_loss_std,
@@ -213,11 +218,12 @@ def plot_complexity_curve(results_dict, logx_scale=False):
         ax.set_ylabel("Loss")
         ax.legend(loc="best")
         ax.grid(linestyle='dotted')
-        #plt.savefig("Loss_curve.png")
-        #ax.clear()
+        plt.savefig(save_path[:-4]+'_loss'+save_path[-4:])
+        plt.close(fig)
 
         # accuracy plot
         #ax = axs[-1]
+        fig, ax = plt.subplots(1, 1)
         ax.fill_between(training_range, train_acc_mean - train_acc_std, train_acc_mean + train_acc_std,
                         alpha=alpha, color=train_color)
         ax.fill_between(training_range, val_acc_mean - val_acc_std, val_acc_mean + val_acc_std,
@@ -233,11 +239,12 @@ def plot_complexity_curve(results_dict, logx_scale=False):
         ax.set_ylabel("Median Rank")
         ax.legend(loc="best")
         ax.grid(linestyle='dotted')
-        #plt.savefig("Perplexity_curve.png")
-        #ax.clear()
-        
+        plt.savefig(save_path[:-4]+'_median'+save_path[-4:])
+        plt.close(fig)
+
         # accuracy plot - img
         #ax = axs[-1]
+        fig, ax = plt.subplots(1, 1)
         ax.fill_between(training_range, train_accim_mean - train_accim_std, train_accim_mean + train_accim_std,
                         alpha=alpha, color=train_color)
         ax.fill_between(training_range, val_accim_mean - val_accim_std, val_accim_mean + val_accim_std,
@@ -254,10 +261,11 @@ def plot_complexity_curve(results_dict, logx_scale=False):
         ax.legend(loc="best")
         ax.grid(linestyle='dotted')
         plt.savefig(save_path[:-4]+'_imacc'+save_path[-4:])
-        ax.clear()
+        plt.close(fig)
 
         # accuracy plot - recipe
         #ax = axs[-1]
+        fig, ax = plt.subplots(1, 1)
         ax.fill_between(training_range, train_accrec_mean - train_accrec_std, train_accrec_mean + train_accrec_std,
                         alpha=alpha, color=train_color)
         ax.fill_between(training_range, val_accrec_mean - val_accrec_std, val_accrec_mean + val_accrec_std,
@@ -274,8 +282,8 @@ def plot_complexity_curve(results_dict, logx_scale=False):
         ax.legend(loc="best")
         ax.grid(linestyle='dotted')
         plt.savefig(save_path[:-4]+'_recacc'+save_path[-4:])
-        ax.clear()
-
-
-        fig.savefig(save_path)
         plt.close(fig)
+
+
+        #fig.savefig(save_path)
+        #plt.close(fig)

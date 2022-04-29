@@ -1,4 +1,4 @@
-name: dl_tests
+name: dl
 channels:
   - defaults
 dependencies:
@@ -9,7 +9,7 @@ dependencies:
   - word2vec
   - tqdm
   - pip
-  pip:
+  - pip:
     - lmdb
     - torch
     - torchvision

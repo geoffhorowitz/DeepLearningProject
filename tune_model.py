@@ -87,19 +87,19 @@ def main(model_inputs=None):
             results_dict[key][exp_val] = {}
             best_median = 1e10
             n_epochs = default_dict['epochs'] if 'epochs' != key else exp_val
-            
+
             train_loss_all = np.zeros((runs_per_experiment, n_epochs))
             #train_perp_all = np.zeros((runs_per_experiment, n_epochs))
             train_median_all = np.zeros((runs_per_experiment, n_epochs))
             train_imacc_all = np.zeros((runs_per_experiment, n_epochs))
             train_recacc_all = np.zeros((runs_per_experiment, n_epochs))
-            
+
             val_loss_all = np.zeros((runs_per_experiment, n_epochs))
             #val_perp_all = np.zeros((runs_per_experiment, n_epochs))
             val_median_all = np.zeros((runs_per_experiment, n_epochs))
             val_imacc_all = np.zeros((runs_per_experiment, n_epochs))
             val_recacc_all = np.zeros((runs_per_experiment, n_epochs))
-            
+
 
             fh = open('experiments/{}_{}_results.txt'.format(key, exp_val), 'w')
 
@@ -173,7 +173,7 @@ def main(model_inputs=None):
             results_dict[key][exp_val]['train_recacc_std'] = np.std(train_recacc_all, axis=0)
             results_dict[key][exp_val]['val_recacc_mean'] = np.mean(val_recacc_all, axis=0)
             results_dict[key][exp_val]['val_recacc_std'] = np.std(val_recacc_all, axis=0)
-            
+
 
             # close file handle
             fh.close()
@@ -201,11 +201,11 @@ def run_pickle_data(pickle_file):
 
 def run(args, model_inputs=None):
     loaders, model, criterion, val_indexes = im2recipe(args)
-        
+
     model.image_model = torch.nn.DataParallel(model.image_model)
     if torch.cuda.is_available():
         model = model.cuda()
-    
+
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     train_loss_history = np.zeros(args.epochs)
@@ -223,7 +223,7 @@ def run(args, model_inputs=None):
 
         (train_acc_image, train_acc_recipe), (train_median, train_recall) = train_metrics
         (val_acc_image, val_acc_recipe), (val_median, val_recall) = val_metrics
-        
+
         avg_train_loss = avg_train_loss.item()
         avg_val_loss = avg_val_loss.item()
         #train_perplex = np.exp(avg_train_loss)
@@ -234,7 +234,7 @@ def run(args, model_inputs=None):
 
         train_median_history[epoch_idx] = train_median
         val_median_history[epoch_idx] = val_median
-        
+
         train_imacc_history[epoch_idx] = train_acc_image.item()
         val_imacc_history[epoch_idx] = val_acc_image.item()
         train_recacc_history[epoch_idx] = train_acc_recipe.item()
@@ -245,7 +245,5 @@ def run(args, model_inputs=None):
 
 
 if __name__ == '__main__':
-    #model_inputs = pre_process()
     main(model_inputs=None)
     #run_pickle_data('experiments/results_dict.pkl')
-    
