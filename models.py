@@ -38,7 +38,7 @@ class Im2Recipe(nn.Module):
         self.recipe_norm = nn.LayerNorm(args.embed_dim)
         self.ingred_model = IngredModel(args)
         self.recipe_model = RecipeModel(args)
-        if args.semantic_reg or (args.generate_metrics and args.metric_type == 'accuracy'):
+        if args.semantic_reg or (args.generate_metrics and (args.metric_type == 'accuracy' or args.metric_type == 'both')):
             self.semantic_layer = nn.Linear(args.embed_dim, args.num_classes)
         else:
             self.semantic_layer = None

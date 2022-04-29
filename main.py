@@ -115,12 +115,12 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
         #                              END OF YOUR CODE                             #
         #############################################################################
         if args.generate_metrics:
-            if args.metric_type=='accuracy':
+            if args.metric_type=='accuracy' or args.metric_type=='both':
                 image_batch_acc = accuracy(out_image_reg, target[1])
                 image_acc.update(image_batch_acc, out_image_reg.shape[0])
                 recipe_batch_acc = accuracy(out_recipe_reg, target[2])
                 recipe_acc.update(recipe_batch_acc, out_recipe_reg.shape[0])
-            else:
+            if args.metric_type=='rank' or args.metric_type=='both':
                 if idx == 0:
                     img_store = out_image.data.cpu().numpy()
                     recipe_store = out_recipe.data.cpu().numpy()
@@ -141,16 +141,16 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
                    'Avg Acc (recipe) {recipe.avg:.4f}\t'
                    )
                   .format(epoch, idx, len(data_loader), iter_time=iter_time, loss=losses, image=image_acc, recipe=recipe_acc))
-    metric_results = None
+    metric_results = [(image_acc.avg, recipe_acc.avg)] # at worst, this will just be 0
     if args.generate_metrics:
-        if args.metric_type=='accuracy':
-            metric_results = (image_acc.avg, recipe_acc.avg)
-        else:
+        if args.metric_type=='rank' or args.metric_type=='both':
             metric_store = {}
             metric_store['image'] = img_store
             metric_store['recipe'] = recipe_store
             metric_store['recipe_id'] = recipe_id_store
-            metric_results = generate_metrics(args, metric_store) # returns median, recall
+            metric_results.append(generate_metrics(args, metric_store)) # returns (median, recall)
+        else:
+            metric_results.append((1000, 1000))
 
     return losses.avg, metric_results
 
@@ -188,12 +188,12 @@ def validate(epoch, val_loader, model, criterion, args):
         #                              END OF YOUR CODE                             #
         #############################################################################
         if args.generate_metrics:
-            if args.metric_type=='accuracy':
+            if args.metric_type=='accuracy' or args.metric_type=='both':
                 image_batch_acc = accuracy(out_image_reg, target[1])
                 image_acc.update(image_batch_acc, out_image_reg.shape[0])
                 recipe_batch_acc = accuracy(out_recipe_reg, target[2])
                 recipe_acc.update(recipe_batch_acc, out_recipe_reg.shape[0])
-            else:
+            if args.metric_type=='rank' or args.metric_type=='both':
                 if idx == 0:
                     img_store = out_image.data.cpu().numpy()
                     recipe_store = out_recipe.data.cpu().numpy()
@@ -214,16 +214,16 @@ def validate(epoch, val_loader, model, criterion, args):
                    'Avg Acc (recipe) {recipe.avg:.4f}\t'
                    )
                   .format(epoch, idx, len(val_loader), iter_time=iter_time, loss=losses, image=image_acc, recipe=recipe_acc))
-    metric_results = None
+    metric_results = [(image_acc.avg, recipe_acc.avg)] # at worst, this will just be 0
     if args.generate_metrics:
-        if args.metric_type=='accuracy':
-            metric_results = (image_acc.avg, recipe_acc.avg)
-        else:
+        if args.metric_type=='rank' or args.metric_type=='both':
             metric_store = {}
             metric_store['image'] = img_store
             metric_store['recipe'] = recipe_store
             metric_store['recipe_id'] = recipe_id_store
-            metric_results = generate_metrics(args, metric_store) # returns median, recall
+            metric_results.append(generate_metrics(args, metric_store)) # returns (median, recall)
+        else:
+            metric_results.append((1000, 1000))
 
     return losses.avg, metric_results
 
@@ -339,8 +339,9 @@ def main():
         # train loop
         train_loss, _ = train(epoch, loaders[0], model, optimizer, criterion, args)
 
-        val_loss, val_medR = validate(epoch, loaders[1], model, criterion, args)
+        val_loss, val_metrics = validate(epoch, loaders[1], model, criterion, args)
         if args.generate_metrics:
+            val_acc, val_medR = val_metrics
             val_loss = val_medR[0]
 
         if val_loss < best:
