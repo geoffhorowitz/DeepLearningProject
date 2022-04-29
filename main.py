@@ -38,7 +38,7 @@ import torchvision.models as models
 from data_loader import ImageLoader
 from models import Im2Recipe
 
-from tune_model import generate_metrics
+from utils.metrics import generate_metrics
 
 parser = argparse.ArgumentParser(description='CS7643 Assignment-2 Part 2')
 parser.add_argument('--config', default='configs/config_fullmodel.yaml')
@@ -69,24 +69,21 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-# def accuracy(output, target):
-#     """Computes the precision@k for the specified values of k"""
-#     batch_size = target.shape[0]
-#
-#     _, pred = torch.max(output, dim=-1)
-#
-#     correct = pred.eq(target).sum() * 1.0
-#
-#     acc = correct / batch_size
-#
-#     return acc
+def accuracy(output, target):
+     """Computes the precision@k for the specified values of k"""
+     batch_size = target.shape[0]
+     _, pred = torch.max(output, dim=-1)
+     correct = pred.eq(target).sum() * 1.0
+     acc = correct / batch_size
+     return acc
 
 
 def train(epoch, data_loader, model, optimizer, criterion, args):
     print('Training')
     iter_time = AverageMeter()
     losses = AverageMeter()
-    # acc = AverageMeter()
+    image_acc = AverageMeter()
+    recipe_acc = AverageMeter()
 
     for idx, (data, target) in enumerate(data_loader):
         start = time.time()
@@ -118,45 +115,42 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
         #                              END OF YOUR CODE                             #
         #############################################################################
         if args.generate_metrics:
-            if idx == 0:
-                img_store = out_image.data.cpu().numpy()
-                recipe_store = out_recipe.data.cpu().numpy()
-                recipe_id_store = target[-1].data.cpu().numpy()
+            if args.metric_type=='accuracy':
+                image_batch_acc = accuracy(out_image_reg, target[1])
+                image_acc.update(image_batch_acc, out_image_reg.shape[0])
+                recipe_batch_acc = accuracy(out_recipe_reg, target[2])
+                recipe_acc.update(recipe_batch_acc, out_recipe_reg.shape[0])
             else:
-                img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
-                recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
-                recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
-        # batch_acc = accuracy(out, target)
+                if idx == 0:
+                    img_store = out_image.data.cpu().numpy()
+                    recipe_store = out_recipe.data.cpu().numpy()
+                    recipe_id_store = target[-1].data.cpu().numpy()
+                else:
+                    img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
+                    recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
+                    recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
 
         losses.update(loss, out_image.shape[0])
-        # acc.update(batch_acc, out.shape[0])
 
         iter_time.update(time.time() - start)
         if idx % 10 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
                    'Time {iter_time.val:.3f} ({iter_time.avg:.3f} avg)\t'
                    'Loss {loss.val:.4f} ({loss.avg:.4f} avg)\t'
-                   # 'Prec @1 {top1.val:.4f} ({top1.avg:.4f})\t'
+                   'Avg Acc (image) {image.avg:.4f}\t'
+                   'Avg Acc (recipe) {recipe.avg:.4f}\t'
                    )
-                  .format(epoch, idx, len(data_loader), iter_time=iter_time, loss=losses
-                          # , top1=acc
-                          ))
+                  .format(epoch, idx, len(data_loader), iter_time=iter_time, loss=losses, image=image_acc, recipe=recipe_acc))
     metric_results = None
     if args.generate_metrics:
-        metric_store = {}
-        metric_store['image'] = img_store
-        metric_store['recipe'] = recipe_store
-        metric_store['recipe_id'] = recipe_id_store
-
-        '''
-        import pickle
-        pickle_file = 'metric_store.pkl'.format(epoch)
-        f=open(pickle_file, 'wb')
-        pickle.dump(metric_store, f)
-        f.close()
-        #return losses.avg, metric_store
-        '''
-        metric_results = generate_metrics(args, metric_store) # returns median, recall
+        if args.metric_type=='accuracy':
+            metric_results = (image_acc.avg, recipe_acc.avg)
+        else:
+            metric_store = {}
+            metric_store['image'] = img_store
+            metric_store['recipe'] = recipe_store
+            metric_store['recipe_id'] = recipe_id_store
+            metric_results = generate_metrics(args, metric_store) # returns median, recall
 
     return losses.avg, metric_results
 
@@ -165,7 +159,8 @@ def validate(epoch, val_loader, model, criterion, args):
     print('Validation')
     iter_time = AverageMeter()
     losses = AverageMeter()
-    # acc = AverageMeter()
+    image_acc = AverageMeter()
+    recipe_acc = AverageMeter()
 
     # num_class = 10
     # cm = torch.zeros(num_class, num_class)
@@ -193,57 +188,43 @@ def validate(epoch, val_loader, model, criterion, args):
         #                              END OF YOUR CODE                             #
         #############################################################################
         if args.generate_metrics:
-            if idx == 0:
-                img_store = out_image.data.cpu().numpy()
-                recipe_store = out_recipe.data.cpu().numpy()
-                recipe_id_store = target[-1].data.cpu().numpy()
+            if args.metric_type=='accuracy':
+                image_batch_acc = accuracy(out_image_reg, target[1])
+                image_acc.update(image_batch_acc, out_image_reg.shape[0])
+                recipe_batch_acc = accuracy(out_recipe_reg, target[2])
+                recipe_acc.update(recipe_batch_acc, out_recipe_reg.shape[0])
             else:
-                img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
-                recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
-                recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
-        # batch_acc = accuracy(out, target)
-
-        # update confusion matrix
-        # _, preds = torch.max(out, 1)
-        # for t, p in zip(target.view(-1), preds.view(-1)):
-        #     cm[t.long(), p.long()] += 1
-
+                if idx == 0:
+                    img_store = out_image.data.cpu().numpy()
+                    recipe_store = out_recipe.data.cpu().numpy()
+                    recipe_id_store = target[-1].data.cpu().numpy()
+                else:
+                    img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
+                    recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
+                    recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
+        
         losses.update(loss, out_image.shape[0])
-        # acc.update(batch_acc, out.shape[0])
 
         iter_time.update(time.time() - start)
         if idx % 10 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
                    'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t'
                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  )
-                  .format(epoch, idx, len(val_loader), iter_time=iter_time, loss=losses
-                          # , top1=acc
-                          ))
-    # cm = cm / cm.sum(1)
-    # per_cls_acc = cm.diag().detach().numpy().tolist()
-    # for i, acc_i in enumerate(per_cls_acc):
-    #     print("Accuracy of Class {}: {:.4f}".format(i, acc_i))
-    #
-    # print("* Prec @1: {top1.avg:.4f}".format(top1=acc))
-    # return acc.avg, cm
+                  'Avg Acc (image) {image.avg:.4f}\t'
+                   'Avg Acc (recipe) {recipe.avg:.4f}\t'
+                   )
+                  .format(epoch, idx, len(val_loader), iter_time=iter_time, loss=losses, image=image_acc, recipe=recipe_acc))
     metric_results = retrieved = None
     if args.generate_metrics:
-        metric_store = {}
-        metric_store['image'] = img_store
-        metric_store['recipe'] = recipe_store
-        metric_store['recipe_id'] = recipe_id_store
-
-        '''
-        import pickle
-        pickle_file = 'metric_store.pkl'.format(epoch)
-        f=open(pickle_file, 'wb')
-        pickle.dump(metric_store, f)
-        f.close()
-        #return losses.avg, metric_store
-        '''
-        metric_results = generate_metrics(args, metric_store) # returns median, recall
-        retrieved = retrieval(metric_store)
+        if args.metric_type=='accuracy':
+            metric_results = (image_acc.avg, recipe_acc.avg)
+        else:
+            metric_store = {}
+            metric_store['image'] = img_store
+            metric_store['recipe'] = recipe_store
+            metric_store['recipe_id'] = recipe_id_store
+            metric_results = generate_metrics(args, metric_store) # returns median, recall
+            retrieved = retrieval(metric_store)
 
     return losses.avg, metric_results, retrieved
 

@@ -9,7 +9,7 @@ class Im2Recipe(nn.Module):
 
     def __init__(self, args):
         super(Im2Recipe, self).__init__()
-
+        
         # Image model
         cnn = models.resnet50(pretrained=True)
         # freeze the layers
@@ -29,13 +29,16 @@ class Im2Recipe(nn.Module):
         )
         # self.relu = nn.ReLU()
         # self.class_linear = nn.Linear(args.embed_dim, args.num_classes)
-
-        self.recipe_linear = nn.Linear(args.ingredient_embedding_dim*2 + args.recipe_embedding_dim, args.embed_dim)
+        
+        if args.recipe_model == 'transformer':
+            self.recipe_linear = nn.Linear(args.ingredient_embedding_dim + args.recipe_embedding_dim, args.embed_dim)
+        else:
+            self.recipe_linear = nn.Linear(args.ingredient_embedding_dim*2 + args.recipe_embedding_dim, args.embed_dim)
         self.recipe_tanh = nn.Tanh()
         self.recipe_norm = nn.LayerNorm(args.embed_dim)
         self.ingred_model = IngredModel(args)
         self.recipe_model = RecipeModel(args)
-        if args.semantic_reg:
+        if args.semantic_reg or (args.generate_metrics and args.metric_type == 'accuracy'):
             self.semantic_layer = nn.Linear(args.embed_dim, args.num_classes)
         else:
             self.semantic_layer = None

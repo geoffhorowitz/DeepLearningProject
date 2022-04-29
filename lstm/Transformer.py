@@ -75,8 +75,8 @@ class TransformerTranslator(nn.Module):
         # Don’t worry about sine/cosine encodings- use positional encodings.         #
         ##############################################################################
         # initialize embedding layer
-        self.word_embedding = nn.Embedding(self.input_size, self.word_embedding_dim)
-        self.pos_embedding = nn.Embedding(self.max_length, self.word_embedding_dim)
+        self.word_embedding = nn.Embedding(self.input_size, self.word_embedding_dim).to(device)
+        self.pos_embedding = nn.Embedding(self.max_length, self.word_embedding_dim).to(device)
 
         ##############################################################################
         #                               END OF YOUR CODE                             #
@@ -103,9 +103,9 @@ class TransformerTranslator(nn.Module):
             self.head_vars['k{}'.format(i)] = nn.Linear(self.hidden_dim, self.dim_k).to(device)
             self.head_vars['v{}'.format(i)] = nn.Linear(self.hidden_dim, self.dim_v).to(device)
             self.head_vars['q{}'.format(i)] = nn.Linear(self.hidden_dim, self.dim_q).to(device)
-        self.softmax = nn.Softmax(dim=2)
-        self.attention_head_projection = nn.Linear(self.dim_v * self.num_heads, self.hidden_dim)
-        self.norm_mh = nn.LayerNorm(self.hidden_dim)
+        self.softmax = nn.Softmax(dim=2).to(device)
+        self.attention_head_projection = nn.Linear(self.dim_v * self.num_heads, self.hidden_dim).to(device)
+        self.norm_mh = nn.LayerNorm(self.hidden_dim).to(device)
 
 
         ##############################################################################
@@ -113,10 +113,10 @@ class TransformerTranslator(nn.Module):
         # Deliverable 3: Initialize what you need for the feed-forward layer.        #
         # Don't forget the layer normalization.                                      #
         ##############################################################################
-        self.ff_1 = nn.Linear(self.hidden_dim, self.dim_feedforward)
-        self.ff_relu = nn.ReLU()
-        self.ff_2 = nn.Linear(self.dim_feedforward, self.hidden_dim)
-        self.norm_ff = nn.LayerNorm(self.hidden_dim)
+        self.ff_1 = nn.Linear(self.hidden_dim, self.dim_feedforward).to(device)
+        self.ff_relu = nn.ReLU().to(device)
+        self.ff_2 = nn.Linear(self.dim_feedforward, self.hidden_dim).to(device)
+        self.norm_ff = nn.LayerNorm(self.hidden_dim).to(device)
 
         ##############################################################################
         #                               END OF YOUR CODE                             #
@@ -127,7 +127,7 @@ class TransformerTranslator(nn.Module):
         # TODO:
         # Deliverable 4: Initialize what you need for the final layer (1-2 lines).   #
         ##############################################################################
-        self.linear_out = nn.Linear(self.hidden_dim, self.output_size)
+        self.linear_out = nn.Linear(self.hidden_dim, self.output_size).to(device)
 
         ##############################################################################
         #                               END OF YOUR CODE                             #

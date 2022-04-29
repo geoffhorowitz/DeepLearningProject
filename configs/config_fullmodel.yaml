@@ -1,13 +1,12 @@
 Train:
   batch_size: 4
   learning_rate: 0.005
-  reg: 0.0005
   epochs: 5
   embed_dim: 1024
   num_classes: 1048
   train_percent: 0.1
   val_percent: 0.05
-  semantic_reg: True
+  semantic_reg: False
   cos_weight: 0.8
   image_weight: 0.1
   recipe_weight: 0.1
@@ -16,7 +15,7 @@ Train:
 
 network:
   model: im2recipe
-  recipe_model: 'lstm' # lstm or transformer
+  recipe_model: 'transformer' # lstm or transformer
 
 data:
   #data_path: '../../../../../../../Desktop/DL/'
@@ -24,6 +23,7 @@ data:
   data_path: '../../../../../../../Desktop/DL/data'
   image_path: '../../../../../../../Desktop/DL/data/images'
   generate_metrics: False
+  metric_type: 'accuracy' # rank or accuracy
   save_best: False
 
 image_model:
@@ -41,6 +41,6 @@ recipe_lstm:
   recipe_model_variant: 'custom_fusion' # basic, custom_basic, custom_fusion, paper
 
 transformer:
-    hidden_dim: 128
+    hidden_dim: 256
     num_heads: 4 # 2 original
     dim_feedforward: 256 # 2048 original

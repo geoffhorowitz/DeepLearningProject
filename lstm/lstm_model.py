@@ -11,7 +11,7 @@ import torchvision.models as models
 import word2vec
 
 #from lstm.custom_LSTM import LSTM
-# from lstm.Transformer import TransformerTranslator
+from lstm.Transformer import TransformerTranslator
 
 '''
 reference ("_ref") models source:
@@ -45,7 +45,7 @@ class IngredModel(nn.Module):
         # instantiate the LSTM model
         if args.recipe_model == 'transformer':
             #self.model = nn.Transformer(args.ingredient_embedding_dim, args.num_heads, dim_feedforward=args.dim_feedforward, batch_first=True, device=self.device)
-            self.model = TransformerTranslator(input_size=args.ingredient_embedding_dim, output_size=args.ingredient_embedding_dim, device=self.device, hidden_dim=args.hidden_dim, num_heads=args.num_heads, dim_feedforward=args.dim_feedforward, dim_k=96, dim_v=96, dim_q=96, max_length=50, add_position_embedding=False)
+            self.model = TransformerTranslator(input_size=args.ingredient_embedding_dim, output_size=args.ingredient_embedding_dim, device=self.device, hidden_dim=args.ingredient_embedding_dim, num_heads=args.num_heads, dim_feedforward=args.dim_feedforward, dim_k=96, dim_v=96, dim_q=96, max_length=args.ingredient_embedding_dim, add_position_embedding=False)
         else:
             self.model = nn.LSTM(input_size=args.ingredient_embedding_dim, hidden_size=args.ingredient_lstm_dim, bidirectional=True, batch_first=True)
             #self.model = LSTM(input_size=args.ingredient_embedding_dim, hidden_size=args.ingredient_lstm_dim)
@@ -71,7 +71,7 @@ class IngredModel(nn.Module):
 
         if self.args.recipe_model == 'transformer':
             output = self.model(embedded)
-            print('recipe_out', output.shape)
+            #print('ingred_out', output.shape)
             output = output[:, -1, :]
             return output
         elif self.args.ingred_model_variant == 'base':
@@ -148,7 +148,7 @@ class RecipeModel(nn.Module):
 
         if args.recipe_model == 'transformer':
             #self.model = nn.Transformer(args.recipe_embedding_dim, args.num_heads, dim_feedforward=args.dim_feedforward, batch_first=True, device=self.device)
-            self.model = TransformerTranslator(input_size=args.recipe_embedding_dim, output_size=args.recipe_embedding_dim, device=self.device, hidden_dim=args.hidden_dim, num_heads=args.num_heads, dim_feedforward=args.dim_feedforward, dim_k=96, dim_v=96, dim_q=96, max_length=50)
+            self.model = TransformerTranslator(input_size=args.recipe_embedding_dim, output_size=args.recipe_embedding_dim, device=self.device, hidden_dim=args.recipe_embedding_dim, num_heads=args.num_heads, dim_feedforward=args.dim_feedforward, dim_k=96, dim_v=96, dim_q=96, max_length=args.recipe_embedding_dim)
         else:
             self.model = nn.LSTM(input_size=args.recipe_embedding_dim, hidden_size=args.recipe_lstm_dim, bidirectional=False, batch_first=True)
             #self.model = LSTM(input_size=args.recipe_embedding_dim, hidden_size=args.recipe_lstm_dim)
@@ -162,7 +162,7 @@ class RecipeModel(nn.Module):
 
         if self.args.recipe_model == 'transformer':
             output = self.model(x)
-            print('recipe_out', output.shape)
+            #print('recipe_out', output.shape)
             output = output[:, -1, :]
             return output
         elif self.args.recipe_model_variant == 'base':
