@@ -28,19 +28,17 @@ import copy
 
 import numpy as np
 import torch
-import torchvision
 
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
-import torchvision.models as models
 from data_loader import ImageLoader
 from models import Im2Recipe
 
 from utils.metrics import generate_metrics
 
-parser = argparse.ArgumentParser(description='CS7643 Assignment-2 Part 2')
+parser = argparse.ArgumentParser(description='Alphabet Soup Final Project')
 parser.add_argument('--config', default='configs/config_fullmodel.yaml')
 
 if not(torch.cuda.device_count()):
@@ -87,18 +85,9 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
 
     for idx, (data, target) in enumerate(data_loader):
         start = time.time()
-        # use index 0 if criterion is CosineSimilarity, index 1 for image class
         data = [data[i].to(device) for i in range(len(data))]
         target = [target[i].to(device) for i in range(len(target)-2)]
 
-        #############################################################################
-        # TODO: Complete the body of training loop                                  #
-        #       1. forward data batch to the model                                  #
-        #       2. Compute batch loss                                               #
-        #       3. Compute gradients and update model parameters                    #
-        #############################################################################
-        # Referenced
-        # https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html#optimizing-the-model-parameters
         out_image, out_recipe, out_image_reg, out_recipe_reg = model(data)
         if args.semantic_reg:
             cos_loss = criterion[0](out_image, out_recipe, target[0])
@@ -111,9 +100,7 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        #############################################################################
-        #                              END OF YOUR CODE                             #
-        #############################################################################
+
         if args.generate_metrics:
             if args.metric_type=='accuracy' or args.metric_type=='both':
                 image_batch_acc = accuracy(out_image_reg, target[1])
@@ -162,19 +149,12 @@ def validate(epoch, val_loader, model, criterion, args):
     image_acc = AverageMeter()
     recipe_acc = AverageMeter()
 
-    # num_class = 10
-    # cm = torch.zeros(num_class, num_class)
     img_store = recipe_store = recipe_id_store = None
-    # evaluation loop
     for idx, (data, target) in enumerate(val_loader):
         start = time.time()
         data = [data[i].to(device) for i in range(len(data))]
         target = [target[i].to(device) for i in range(len(target)-2)]
 
-        #############################################################################
-        # TODO: Complete the body of training loop                                  #
-        #       HINT: torch.no_grad()                                               #
-        #############################################################################
         with torch.no_grad():
             out_image, out_recipe, out_image_reg, out_recipe_reg = model(data)
             if args.semantic_reg:
@@ -184,9 +164,7 @@ def validate(epoch, val_loader, model, criterion, args):
                 loss = args.cos_weight * cos_loss + args.image_weight * image_loss + args.recipe_weight * recipe_loss
             else:
                 loss = criterion[0](out_image, out_recipe, target[0])
-        #############################################################################
-        #                              END OF YOUR CODE                             #
-        #############################################################################
+
         if args.generate_metrics:
             if args.metric_type=='accuracy' or args.metric_type=='both':
                 image_batch_acc = accuracy(out_image_reg, target[1])
@@ -245,18 +223,18 @@ def validate(epoch, val_loader, model, criterion, args):
 
 
 def im2recipe(args):
-    # This is same setup from study
+    # Using same results transform setup from paper to reproduce results.
     transform_train = transforms.Compose([
-        transforms.Resize(256),  # rescale the image keeping the original aspect ratio
-        transforms.CenterCrop(256),  # we get only the center of that rescaled
-        transforms.RandomCrop(224),  # random crop within the center crop
+        transforms.Resize(256),
+        transforms.CenterCrop(256),
+        transforms.RandomCrop(224),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     transform_val = transforms.Compose([
-        transforms.Resize(256), # rescale the image keeping the original aspect ratio
-        transforms.CenterCrop(224), # we get only the center of that rescaled
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
@@ -298,22 +276,10 @@ def im2recipe(args):
     model = Im2Recipe(args)
 
     cos_criterion = nn.CosineEmbeddingLoss(0.1).to(device)
-    # found this in other impl
+    entropy_criterion = None
     if args.semantic_reg:
-        # weights = torch.ones(args.num_classes)
-        # weights[0] = 0
-        # this causes nan to be thrown
-        # weights_class = torch.Tensor(args.num_classes).fill_(1)
-        # weights_class[0] = 0  # the background class is set to 0, i.e. ignore
         entropy_criterion = nn.CrossEntropyLoss().to(device)
-    else:
-        entropy_criterion = None
     return (train_loader, val_loader), model, (cos_criterion, entropy_criterion), val_indexes
-
-
-def recipe2im(args):
-    # TODO
-    return None, None, None
 
 
 def retrieval(metric_store):
@@ -335,19 +301,17 @@ def main():
         for k, v in config[key].items():
             setattr(args, k, v)
 
-    loaders, model, criterion, val_indexes = im2recipe(args) if args.model == 'im2recipe' else recipe2im(args)
+    loaders, model, criterion, val_indexes = im2recipe(args)
     print(torch.cuda.is_available())
     model.image_model = torch.nn.DataParallel(model.image_model)
     model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     best = math.inf
-    # best_cm = None
     best_model = best_retrieved = None
     for epoch in range(args.epochs):
         # adjust_learning_rate(optimizer, epoch, args)
 
-        # train loop
         train_loss, _ = train(epoch, loaders[0], model, optimizer, criterion, args)
 
         val_loss, val_metrics, val_retrieval = validate(epoch, loaders[1], model, criterion, args)
@@ -358,14 +322,9 @@ def main():
         if val_loss < best:
             best = val_loss
             best_retrieved = val_retrieval
-            # best_cm = cm
             best_model = copy.deepcopy(model)
 
     print('Best Prec @1 Loss: {:.4f}'.format(best))
-    # print('Best Prec @1 Acccuracy: {:.4f}'.format(best))
-    # per_cls_acc = best_cm.diag().detach().numpy().tolist()
-    # for i, acc_i in enumerate(per_cls_acc):
-    #     print("Accuracy of Class {}: {:.4f}".format(i, acc_i))
 
     if args.save_best:
         torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + '.pth')
