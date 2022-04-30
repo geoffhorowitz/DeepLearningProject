@@ -208,18 +208,20 @@ def validate(epoch, val_loader, model, criterion, args):
     return losses.avg, metric_results, retrieved
 
 
-# def adjust_learning_rate(optimizer, epoch, args):
-#     epoch += 1
-#     if epoch <= args.warmup:
-#         lr = args.learning_rate * epoch / args.warmup
-#     elif epoch > args.steps[1]:
-#         lr = args.learning_rate * 0.01
-#     elif epoch > args.steps[0]:
-#         lr = args.learning_rate * 0.1
-#     else:
-#         lr = args.learning_rate
-#     for param_group in optimizer.param_groups:
-#         param_group['lr'] = lr
+def adjust_learning_rate(optimizer, epoch, args):
+    try:
+        steps = args.steps
+    except RuntimeError:
+        return
+    epoch += 1
+    if epoch > steps[1]:
+        lr = args.learning_rate * 0.01
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
+    elif epoch > steps[0]:
+        lr = args.learning_rate * 0.1
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
 
 
 def im2recipe(args):
@@ -310,7 +312,7 @@ def main():
     best = math.inf
     best_model = best_retrieved = None
     for epoch in range(args.epochs):
-        # adjust_learning_rate(optimizer, epoch, args)
+        adjust_learning_rate(optimizer, epoch, args)
 
         train_loss, _ = train(epoch, loaders[0], model, optimizer, criterion, args)
 
