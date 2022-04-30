@@ -19,21 +19,33 @@ import torchvision.models as models
 from data_loader import ImageLoader
 from models import Im2Recipe
 from main import im2recipe, train, validate
+from main import main
 
 from collections import namedtuple
 from plot_methods import plot_complex_learning_curve, plot_complexity_curve
 
 
-def main(model_inputs=None):
+def tune_main(model_args, model_inputs=None):
+    default_dict = {}
+    
+    with open(model_args.config) as f:
+        config = yaml.load(f, Loader=yaml.Loader)
+
+    for key in config:
+        for k, v in config[key].items():
+            #setattr(model_args, k, v)
+            default_dict[k] = v
+            
+    '''
     default_dict = {
         #Train:
-        'batch_size': 100,
-        'learning_rate': 0.001,
+        'batch_size': 256,
+        'learning_rate': 0.0001,
         'epochs': 10,
         'embed_dim': 1024,
         'num_classes': 1048,
-        'train_percent': 0.1,
-        'val_percent': 0.05,
+        'train_percent': 0.6,
+        'val_percent': 0.2,
         'semantic_reg': False,
         'cos_weight': 0.8,
         'image_weight': 0.1,
@@ -47,7 +59,7 @@ def main(model_inputs=None):
         'data_path': 'data',
         'image_path': 'data/images',
         'generate_metrics': True,
-        'metric_type': 'accuracy', # rank or accuracy
+        'metric_type': 'both', # rank or accuracy or both
         'save_best': False,
         #image_model:
         'freeze_image': True,
@@ -55,29 +67,30 @@ def main(model_inputs=None):
         'ingredient_lstm_dim': 300,
         'ingredient_embedding_dim': 300, # vocab size 30167 x 300 embedded
         'ingredient_w2v_path': 'data/vocab.bin',
-        'ingred_model_variant': 'base', # base, custom_basic, custom_fusion, paper
+        'ingred_model_variant': 'paper', # base, custom_basic, custom_fusion, paper
         'ingred_dropout': .2,
         #recipe_lstm:
         'recipe_lstm_dim': 1024,
         'recipe_embedding_dim': 1024,
-        'recipe_model_variant': 'base', # base, custom_basic, custom_fusion, paper
+        'recipe_model_variant': 'paper', # base, custom_basic, custom_fusion, paper
         'recipe_dropout': .2,
         #transformer:
         'hidden_dim': 256,
         'num_heads': 4,
         'dim_feedforward': 256, # 2048 original
     }
+    '''
 
-    # LSTM
     experiment_dict = {
-        #'learning_rate': [1e-2, 1e-3, 1e-4, 1e-5], # 1e-3
-        #'epochs': [5, 10, 20]
-        #'mismatch': [.8, .5, .2]
-        'epochs': [2]
+        #'learning_rate': [1e-2, 1e-3, 1e-4], # 1e-3
+        #'epochs': [10, 20],
+        'mismatch': [.8, .5, .2],
+        #'ingred_model_variant': ['base', 'custom_basic', 'custom_fusion', 'paper']
+        #'epochs': [2]
     }
 
 
-    runs_per_experiment = 1 # balance b/w trials and hyperparams to test
+    runs_per_experiment = 2 # balance b/w trials and hyperparams to test
 
     results_dict = {'defaults': default_dict}
 
@@ -107,6 +120,8 @@ def main(model_inputs=None):
                 input_dict = default_dict.copy()
                 input_dict[key] = exp_val
 
+                input_dict['recipe_model_variant'] = input_dict['ingred_model_variant']
+                
                 args = namedtuple("args", input_dict.keys())(*input_dict.values()) # to get it in the same dot callable format
 
                 train_loss, val_loss, train_median, val_median, train_imacc, val_imacc, train_recacc, val_recacc = run(args, model_inputs)
@@ -245,5 +260,9 @@ def run(args, model_inputs=None):
 
 
 if __name__ == '__main__':
-    main(model_inputs=None)
+    parser = argparse.ArgumentParser(description='Alphabet Soup Final Project')
+    parser.add_argument('--config', default='configs/config_tuning.yaml')
+    model_args = parser.parse_args()
+
+    tune_main(model_args, model_inputs=None)
     #run_pickle_data('experiments/results_dict.pkl')
