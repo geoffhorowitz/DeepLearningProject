@@ -300,16 +300,7 @@ def retrieval(metric_store):
     return (recipe_id_store, retrieved_id), retrieved_val
 
 
-def main():
-    global args
-    args = parser.parse_args()
-    with open(args.config) as f:
-        config = yaml.load(f, Loader=yaml.Loader)
-
-    for key in config:
-        for k, v in config[key].items():
-            setattr(args, k, v)
-
+def main(args, tuning_model=False):
     loaders, model, criterion, val_indexes = im2recipe(args)
     print(torch.cuda.is_available())
     model.image_model = torch.nn.DataParallel(model.image_model)
@@ -318,21 +309,63 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     best = math.inf
     best_model = best_retrieved = None
+    if not tuning_model: 
+        results_dict = {'baseline':{'baseline': {0: {}}}}
+        results_dict = {'defaults': args}
+    
+    train_loss_history = np.zeros(args.epochs)
+    val_loss_history = np.zeros(args.epochs)
+    train_median_history = np.zeros(args.epochs)
+    val_median_history = np.zeros(args.epochs)
+    train_imacc_history = np.zeros(args.epochs)
+    val_imacc_history = np.zeros(args.epochs)
+    train_recacc_history = np.zeros(args.epochs)
+    val_recacc_history = np.zeros(args.epochs)
+    
     for epoch in range(args.epochs):
         adjust_learning_rate(optimizer, epoch, args)
 
-        train_loss, _ = train(epoch, loaders[0], model, optimizer, criterion, args)
+        train_loss, train_metrics = train(epoch, loaders[0], model, optimizer, criterion, args)
 
         val_loss, val_metrics, val_retrieval = validate(epoch, loaders[1], model, criterion, args)
+        
+        (train_acc_image, train_acc_recipe), (train_median, train_recall) = train_metrics
+        (val_acc_image, val_acc_recipe), (val_median, val_recall) = val_metrics
+
+        train_loss_history[epoch] = avg_train_loss.item()
+        val_loss_history[epoch] = avg_val_loss.item()
+
+        train_median_history[epoch] = train_median
+        val_median_history[epoch] = val_median
+
+        train_imacc_history[epoch] = train_acc_image.item()
+        val_imacc_history[epoch] = val_acc_image.item()
+        train_recacc_history[epoch] = train_acc_recipe.item()
+        val_recacc_history[epoch] = val_acc_recipe.item()
+        
+        
         if args.generate_metrics:
             val_acc, val_medR = val_metrics
-            val_loss = val_medR[0]
+            val_loss = val_median
 
-        if val_loss < best:
+        if args.save_best and val_loss < best:
             best = val_loss
             best_retrieved = val_retrieval
             best_model = copy.deepcopy(model)
 
+        if not tuning_model:
+            results_dict['baseline']['baseline'][0] = {}
+            results_dict['baseline']['baseline'][0]['id'] = '{}.{}.{}'.format(1, 1, 1)
+            results_dict['baseline']['baseline'][0]['train_loss'] = train_loss_history
+            results_dict['baseline']['baseline'][0]['train_median'] = train_median_history
+            results_dict['baseline']['baseline'][0]['train_imacc'] = train_imacc_history
+            results_dict['baseline']['baseline'][0]['train_recacc'] = train_recacc_history
+            results_dict['baseline']['baseline'][0]['val_loss'] = val_loss_history
+            results_dict['baseline']['baseline'][0]['val_median'] = val_median_history
+            results_dict['baseline']['baseline'][0]['val_imacc'] = val_imacc_history
+            results_dict['baseline']['baseline'][0]['val_recacc'] = val_recacc_history
+            
+        
     print('Best Prec @1 Loss: {:.4f}'.format(best))
 
     if args.save_best:
@@ -350,6 +383,43 @@ def main():
             results_file.write('Given Id: ' + given + ', Retrieved Id: ' + ret + ', Val: {0:.4f}'.format(val) + '\n')
         results_file.close()
 
+    if tuning_model:
+        return train_loss_history, val_loss_history, train_median_history, val_median_history, train_imacc_history, val_imacc_history, train_recacc_history, val_recacc_history
+    else:
+        results_dict['baseline']['baseline']['best_median'] = best_median
+        results_dict['baseline']['baseline']['best_run'] = best_run
+        results_dict['baseline']['baseline']['train_loss_mean'] = train_loss_history
+        results_dict['baseline']['baseline']['train_loss_std'] = np.zeros(train_loss_history.shape)
+        results_dict['baseline']['baseline']['train_median_mean'] = train_median_history
+        results_dict['baseline']['baseline']['train_median_std'] = np.zeros(train_median_history.shape)
+        results_dict['baseline']['baseline']['train_imacc_mean'] = train_imacc_history
+        results_dict['baseline']['baseline']['train_imacc_std'] = np.zeros(train_imacc_history.shape)
+        results_dict['baseline']['baseline']['train_recacc_mean'] = train_recacc_history
+        results_dict['baseline']['baseline']['train_recacc_std'] = np.zeros(train_recacc_history.shape)
+        results_dict['baseline']['baseline']['val_loss_mean'] = val_loss_history
+        results_dict['baseline']['baseline']['val_loss_std'] = np.zeros(val_loss_history.shape)
+        results_dict['baseline']['baseline']['val_median_mean'] = val_median_history
+        results_dict['baseline']['baseline']['val_median_std'] = np.zeros(val_median_history.shape)
+        results_dict['baseline']['baseline']['val_imacc_mean'] = val_imacc_history
+        results_dict['baseline']['baseline']['val_imacc_std'] = np.zeros(val_imacc_history.shape)
+        results_dict['baseline']['baseline']['val_recacc_mean'] = val_recacc_history
+        results_dict['baseline']['baseline']['val_recacc_std'] = np.zeros(val_recacc_history.shape)
+        
+        f=open('main_results.pkl', 'wb')
+        pickle.dump(results_dict, f)
+        f.close()
+        
+        plot_complex_learning_curve(results_dict)
+    
 
 if __name__ == '__main__':
-    main()
+    global args
+    args = parser.parse_args()
+    with open(args.config) as f:
+        config = yaml.load(f, Loader=yaml.Loader)
+
+    for key in config:
+        for k, v in config[key].items():
+            setattr(args, k, v)
+            
+    main(args)

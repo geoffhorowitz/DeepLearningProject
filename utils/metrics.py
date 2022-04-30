@@ -44,7 +44,7 @@ def generate_metrics(args, metric_store):
         ids_sub = names[ids]
 
         # if params.embedding == 'image':
-        if type_embedding == 'image':
+        if type_embedding == 'images':
             sims = np.dot(im_sub,instr_sub.T) # for im2recipe
         else:
             sims = np.dot(instr_sub,im_sub.T) # for recipe2im
