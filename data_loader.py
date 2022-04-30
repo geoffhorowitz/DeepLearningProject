@@ -40,8 +40,7 @@ def default_loader(path):
 
 class ImageLoader(data.Dataset):
     def __init__(self, img_path, transform=None, target_transform=None, mismatch=0.8,
-                 loader=default_loader, square=False, data_path=None, partition=None, sem_reg=None, all_idx=None,
-                 evaluate=False):
+                 loader=default_loader, square=False, data_path=None, partition=None, sem_reg=None, all_idx=None):
 
         if data_path == None:
             raise Exception('No data path specified.')
@@ -75,7 +74,6 @@ class ImageLoader(data.Dataset):
 
         # added in for proper mismatch search
         self.all_idx = all_idx if all_idx is not None else range(len(self.ids))
-        self.evaluate = evaluate
 
     def __getitem__(self, index):
         recipId = self.ids[index]
@@ -161,19 +159,6 @@ class ImageLoader(data.Dataset):
             img_class = sample['classes'] - 1
             img_id = self.ids[index]
 
-        # output
-        # if self.partition == 'train':
-        #     if self.semantic_reg:
-        #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class]
-        #     else:
-        #         return [img, instrs, itr_ln, ingrs, igr_ln], [target]
-        # else:
-        #     if self.semantic_reg:
-        #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class, img_id, rec_id]
-        #     else:
-        #         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_id, rec_id]
-        if self.evaluate:
-            return [path, instrs_orig, ingrs_orig]
         return [img, instrs, itr_ln, ingrs, igr_ln], [target, img_class, rec_class, img_id, rec_id]
 
     def __len__(self):

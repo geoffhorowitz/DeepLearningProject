@@ -85,6 +85,7 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
 
     for idx, (data, target) in enumerate(data_loader):
         start = time.time()
+        recipe_id = target[-1]
         data = [data[i].to(device) for i in range(len(data))]
         target = [target[i].to(device) for i in range(len(target)-2)]
 
@@ -111,11 +112,13 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
                 if idx == 0:
                     img_store = out_image.data.cpu().numpy()
                     recipe_store = out_recipe.data.cpu().numpy()
-                    recipe_id_store = target[-1].data.cpu().numpy()
+                    # recipe_id_store = target[-1].data.cpu().numpy()
+                    recipe_id_store = recipe_id
                 else:
                     img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
                     recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
-                    recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
+                    # recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
+                    recipe_id_store = np.concatenate((recipe_id_store, recipe_id), axis=0)
 
         losses.update(loss, out_image.shape[0])
 
@@ -152,6 +155,7 @@ def validate(epoch, val_loader, model, criterion, args):
     img_store = recipe_store = recipe_id_store = None
     for idx, (data, target) in enumerate(val_loader):
         start = time.time()
+        recipe_id = target[-1]
         data = [data[i].to(device) for i in range(len(data))]
         target = [target[i].to(device) for i in range(len(target)-2)]
 
@@ -175,11 +179,13 @@ def validate(epoch, val_loader, model, criterion, args):
                 if idx == 0:
                     img_store = out_image.data.cpu().numpy()
                     recipe_store = out_recipe.data.cpu().numpy()
-                    recipe_id_store = target[-1].data.cpu().numpy()
+                    # recipe_id_store = target[-1].data.cpu().numpy()
+                    recipe_id_store = recipe_id
                 else:
                     img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
                     recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
-                    recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
+                    # recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
+                    recipe_id_store = np.concatenate((recipe_id_store, recipe_id), axis=0)
         
         losses.update(loss, out_image.shape[0])
 
@@ -287,10 +293,11 @@ def im2recipe(args):
 def retrieval(metric_store):
     img_store = metric_store['image']
     recipe_store = metric_store['recipe']
+    recipe_id_store = metric_store['recipe_id']
     sims = np.matmul(img_store, recipe_store.transpose())
-    retrieved_id = np.argmax(sims, axis=1)
+    retrieved_id = recipe_id_store[np.argmax(sims, axis=1)]
     retrieved_val = np.max(sims, axis=1)
-    return retrieved_id, retrieved_val
+    return (recipe_id_store, retrieved_id), retrieved_val
 
 
 def main():
@@ -330,20 +337,17 @@ def main():
 
     if args.save_best:
         torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + '.pth')
-        image_loader = ImageLoader(args.image_path, data_path=args.data_path, partition='val', evaluate=True)
         pairs = []
-        for (val_ind, ret_id, ret_val) in zip(val_indexes, best_retrieved[0], best_retrieved[1]):
-            given = image_loader[val_ind]
-            ret = image_loader[val_indexes[ret_id]]
+        for (given, ret, ret_val) in zip(best_retrieved[0][0], best_retrieved[0][1], best_retrieved[1]):
             pairs.append({'given': given, 'ret': ret, 'val': ret_val})
         pairs.sort(reverse=True, key=lambda p: p['val'])
-        results_file = open('image_results.txt', 'w')
+        results_file = open('queried_results.txt', 'w')
         for pair in pairs:
             given = pair['given']
             ret = pair['ret']
             val = pair['val']
-            # only save images for now
-            results_file.write('Given image: ' + given[0] + ', Retrieved image: ' + ret[0] + ', Val: {0:.4f}'.format(val) + '\n')
+            # only save id to identify from layer1/2.json later.
+            results_file.write('Given Id: ' + given + ', Retrieved Id: ' + ret + ', Val: {0:.4f}'.format(val) + '\n')
         results_file.close()
 
 
