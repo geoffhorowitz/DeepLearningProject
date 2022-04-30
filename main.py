@@ -25,7 +25,7 @@ import yaml
 import argparse
 import time
 import copy
-
+import pickle
 import numpy as np
 import torch
 
@@ -35,6 +35,7 @@ from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 from data_loader import ImageLoader
 from models import Im2Recipe
+from plot_methods import plot_complex_learning_curve
 
 from utils.metrics import generate_metrics
 
@@ -308,6 +309,7 @@ def main(args, tuning_model=False):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     best = math.inf
+    best_run = -1
     best_model = best_retrieved = None
     if not tuning_model: 
         results_dict = {'baseline':{'baseline': {0: {}}}}
@@ -332,8 +334,8 @@ def main(args, tuning_model=False):
         (train_acc_image, train_acc_recipe), (train_median, train_recall) = train_metrics
         (val_acc_image, val_acc_recipe), (val_median, val_recall) = val_metrics
 
-        train_loss_history[epoch] = avg_train_loss.item()
-        val_loss_history[epoch] = avg_val_loss.item()
+        train_loss_history[epoch] = train_loss.item()
+        val_loss_history[epoch] = val_loss.item()
 
         train_median_history[epoch] = train_median
         val_median_history[epoch] = val_median
@@ -342,14 +344,13 @@ def main(args, tuning_model=False):
         val_imacc_history[epoch] = val_acc_image.item()
         train_recacc_history[epoch] = train_acc_recipe.item()
         val_recacc_history[epoch] = val_acc_recipe.item()
-        
-        
+
         if args.generate_metrics:
-            val_acc, val_medR = val_metrics
             val_loss = val_median
 
         if args.save_best and val_loss < best:
             best = val_loss
+            best_run = epoch
             best_retrieved = val_retrieval
             best_model = copy.deepcopy(model)
 
@@ -386,7 +387,7 @@ def main(args, tuning_model=False):
     if tuning_model:
         return train_loss_history, val_loss_history, train_median_history, val_median_history, train_imacc_history, val_imacc_history, train_recacc_history, val_recacc_history
     else:
-        results_dict['baseline']['baseline']['best_median'] = best_median
+        results_dict['baseline']['baseline']['best_median'] = best
         results_dict['baseline']['baseline']['best_run'] = best_run
         results_dict['baseline']['baseline']['train_loss_mean'] = train_loss_history
         results_dict['baseline']['baseline']['train_loss_std'] = np.zeros(train_loss_history.shape)
