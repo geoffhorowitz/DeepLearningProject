@@ -25,18 +25,7 @@ from collections import namedtuple
 from plot_methods import plot_complex_learning_curve, plot_complexity_curve
 
 
-def tune_main(model_args, model_inputs=None):
-    default_dict = {}
-    
-    with open(model_args.config) as f:
-        config = yaml.load(f, Loader=yaml.Loader)
-
-    for key in config:
-        for k, v in config[key].items():
-            #setattr(model_args, k, v)
-            default_dict[k] = v
-            
-    '''
+def tune_main(model_inputs=None):
     default_dict = {
         #Train:
         'batch_size': 256,
@@ -79,7 +68,7 @@ def tune_main(model_args, model_inputs=None):
         'num_heads': 4,
         'dim_feedforward': 256, # 2048 original
     }
-    '''
+    
 
     experiment_dict = {
         #'learning_rate': [1e-2, 1e-3, 1e-4], # 1e-3
@@ -264,5 +253,5 @@ if __name__ == '__main__':
     parser.add_argument('--config', default='configs/config_tuning.yaml')
     model_args = parser.parse_args()
 
-    tune_main(model_args, model_inputs=None)
+    tune_main(model_inputs=None)
     #run_pickle_data('experiments/results_dict.pkl')

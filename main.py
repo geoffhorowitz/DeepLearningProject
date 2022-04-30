@@ -20,6 +20,7 @@ prohibited and subject to being investigated as a GT honor code violation.
 -----do not edit anything above this line---
 """
 import math
+import os
 
 import yaml
 import argparse
@@ -312,7 +313,7 @@ def main(args, tuning_model=False):
     best_model = best_retrieved = None
     if not tuning_model: 
         results_dict = {'baseline':{'baseline': {0: {}}}}
-        # results_dict = {'defaults': args}
+        results_dict['defaults'] = {'epochs': args.epochs}
     
     train_loss_history = np.zeros(args.epochs)
     val_loss_history = np.zeros(args.epochs)
@@ -404,7 +405,10 @@ def main(args, tuning_model=False):
         results_dict['baseline']['baseline']['val_recacc_mean'] = val_recacc_history
         results_dict['baseline']['baseline']['val_recacc_std'] = np.zeros(val_recacc_history.shape)
         
-        f=open('main_results.pkl', 'wb')
+        if not os.path.exists('experiments/'):
+            os.makedirs('experiments/')
+            
+        f=open('experiments/main_results.pkl', 'wb')
         pickle.dump(results_dict, f)
         f.close()
         
