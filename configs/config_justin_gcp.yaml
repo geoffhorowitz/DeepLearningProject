@@ -3,7 +3,7 @@ Train:
   learning_rate: 0.0001
   reg: 0.00005
   epochs: 10
-  steps: [6, 8]
+  steps: [4, 8]
   warmup: 0
   momentum: 0.9
   embed_dim: 1024
@@ -24,8 +24,8 @@ network:
 data:
   data_path: '../data'
   image_path: '../images'
-  generate_metrics: False
-  metric_type: 'accuracy' # rank or accuracy
+  generate_metrics: True
+  metric_type: 'rank' # rank or accuracy or both
   save_best: True
 
 image_model:
@@ -35,9 +35,9 @@ ingredient_lstm:
   ingredient_lstm_dim: 300
   ingredient_embedding_dim: 300 # vocab size 30167 x 300 embedded
   ingredient_w2v_path: '../data/vocab.bin'
-  ingred_model_variant: 'custom_fusion' # base, custom_fusion, paper
+  ingred_model_variant: 'paper' # base, custom_fusion, paper
 
 recipe_lstm:
   recipe_lstm_dim: 1024
   recipe_embedding_dim: 1024
-  recipe_model_variant: 'custom_fusion' # base, custom_basic, custom_fusion, paper
+  recipe_model_variant: 'paper' # base, custom_basic, custom_fusion, paper
