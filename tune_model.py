@@ -33,8 +33,8 @@ def tune_main(model_inputs=None):
         'epochs': 10,
         'embed_dim': 1024,
         'num_classes': 1048,
-        'train_percent': 0.6,
-        'val_percent': 0.2,
+        'train_percent': 0.5, #.6
+        'val_percent': 0.1, #.2
         'semantic_reg': False,
         'cos_weight': 0.8,
         'image_weight': 0.1,
@@ -73,8 +73,8 @@ def tune_main(model_inputs=None):
     experiment_dict = {
         #'learning_rate': [1e-2, 1e-3, 1e-4], # 1e-3
         #'epochs': [10, 20],
-        'mismatch': [.8, .5, .2],
-        #'ingred_model_variant': ['base', 'custom_basic', 'custom_fusion', 'paper']
+        #'mismatch': [.8, .5, .2],
+        'ingred_model_variant': ['base', 'custom_basic', 'paper']
         #'epochs': [2]
     }
 
@@ -185,6 +185,9 @@ def tune_main(model_inputs=None):
     # save results dictionary for potential later use
     #with open('experiments/results_dict.json', 'wb') as f:
     #    json.dump(results_dict, f)
+    if not os.path.exists('experiments/'):
+        os.makedirs('experiments/')
+        
     f=open('experiments/results_dict.pkl', 'wb')
     pickle.dump(results_dict, f)
     f.close()
