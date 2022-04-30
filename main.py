@@ -309,11 +309,10 @@ def main(args, tuning_model=False):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     best = math.inf
-    best_run = -1
     best_model = best_retrieved = None
     if not tuning_model: 
         results_dict = {'baseline':{'baseline': {0: {}}}}
-        results_dict = {'defaults': args}
+        # results_dict = {'defaults': args}
     
     train_loss_history = np.zeros(args.epochs)
     val_loss_history = np.zeros(args.epochs)
@@ -350,7 +349,6 @@ def main(args, tuning_model=False):
 
         if args.save_best and val_loss < best:
             best = val_loss
-            best_run = epoch
             best_retrieved = val_retrieval
             best_model = copy.deepcopy(model)
 
@@ -388,7 +386,7 @@ def main(args, tuning_model=False):
         return train_loss_history, val_loss_history, train_median_history, val_median_history, train_imacc_history, val_imacc_history, train_recacc_history, val_recacc_history
     else:
         results_dict['baseline']['baseline']['best_median'] = best
-        results_dict['baseline']['baseline']['best_run'] = best_run
+        results_dict['baseline']['baseline']['best_run'] = 0
         results_dict['baseline']['baseline']['train_loss_mean'] = train_loss_history
         results_dict['baseline']['baseline']['train_loss_std'] = np.zeros(train_loss_history.shape)
         results_dict['baseline']['baseline']['train_median_mean'] = train_median_history
