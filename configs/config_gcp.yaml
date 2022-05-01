@@ -18,8 +18,8 @@ network:
   recipe_model: 'lstm' # lstm or transformer
 
 data:
-  data_path: '../data'
-  image_path: '../images'
+  data_path: 'data'
+  image_path: 'images'
   generate_metrics: True
   metric_type: 'both' # rank or accuracy or both
   save_best: True
@@ -30,7 +30,7 @@ image_model:
 ingredient_lstm:
   ingredient_lstm_dim: 300
   ingredient_embedding_dim: 300 # vocab size 30167 x 300 embedded
-  ingredient_w2v_path: '../data/vocab.bin'
+  ingredient_w2v_path: 'data/vocab.bin'
   ingred_model_variant: 'paper' # base, custom_fusion, paper
 
 recipe_lstm:
