@@ -18,6 +18,23 @@ Sharing solutions with current or future students of CS 7643 Deep Learning is
 prohibited and subject to being investigated as a GT honor code violation.
 
 -----do not edit anything above this line---
+
+@article{marin2019learning,
+  title = {Recipe1M+: A Dataset for Learning Cross-Modal Embeddings for Cooking Recipes and Food Images},
+  author = {Marin, Javier and Biswas, Aritro and Ofli, Ferda and Hynes, Nicholas and
+  Salvador, Amaia and Aytar, Yusuf and Weber, Ingmar and Torralba, Antonio},
+  journal = {{IEEE} Trans. Pattern Anal. Mach. Intell.},
+  year = {2019}
+}
+
+@inproceedings{salvador2017learning,
+  title={Learning Cross-modal Embeddings for Cooking Recipes and Food Images},
+  author={Salvador, Amaia and Hynes, Nicholas and Aytar, Yusuf and Marin, Javier and
+          Ofli, Ferda and Weber, Ingmar and Torralba, Antonio},
+  booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition},
+  year={2017}
+}
+-----do not edit anything above this line---
 """
 import math
 import os
@@ -28,7 +45,6 @@ import time
 import copy
 import pickle
 import numpy as np
-import torch
 
 import torch
 import torch.nn as nn
@@ -41,7 +57,7 @@ from plot_methods import plot_complex_learning_curve
 from utils.metrics import generate_metrics
 
 parser = argparse.ArgumentParser(description='Alphabet Soup Final Project')
-parser.add_argument('--config', default='configs/config_fullmodel.yaml')
+parser.add_argument('--config', default='configs/config_gcp.yaml')
 
 if not(torch.cuda.device_count()):
     device = torch.device(*('cpu',0))
@@ -114,12 +130,10 @@ def train(epoch, data_loader, model, optimizer, criterion, args):
                 if idx == 0:
                     img_store = out_image.data.cpu().numpy()
                     recipe_store = out_recipe.data.cpu().numpy()
-                    # recipe_id_store = target[-1].data.cpu().numpy()
                     recipe_id_store = recipe_id
                 else:
                     img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
                     recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
-                    # recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
                     recipe_id_store = np.concatenate((recipe_id_store, recipe_id), axis=0)
 
         losses.update(loss, out_image.shape[0])
@@ -181,12 +195,10 @@ def validate(epoch, val_loader, model, criterion, args):
                 if idx == 0:
                     img_store = out_image.data.cpu().numpy()
                     recipe_store = out_recipe.data.cpu().numpy()
-                    # recipe_id_store = target[-1].data.cpu().numpy()
                     recipe_id_store = recipe_id
                 else:
                     img_store = np.concatenate((img_store, out_image.data.cpu().numpy()))
                     recipe_store = np.concatenate((recipe_store, out_recipe.data.cpu().numpy()))
-                    # recipe_id_store = np.concatenate((recipe_id_store, target[-1].data.cpu().numpy()))
                     recipe_id_store = np.concatenate((recipe_id_store, recipe_id), axis=0)
         
         losses.update(loss, out_image.shape[0])
@@ -219,7 +231,7 @@ def validate(epoch, val_loader, model, criterion, args):
 def adjust_learning_rate(optimizer, epoch, args):
     try:
         steps = args.steps
-    except RuntimeError:
+    except AttributeError:
         return
     epoch += 1
     if epoch > steps[1]:
@@ -233,7 +245,7 @@ def adjust_learning_rate(optimizer, epoch, args):
 
 
 def im2recipe(args):
-    # Using same results transform setup from paper to reproduce results.
+    # Using same set of transforms used by the paper to reproduce results.
     transform_train = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(256),
@@ -248,6 +260,7 @@ def im2recipe(args):
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
+    # Extract training and validation datasets.
     image_loader = ImageLoader(args.image_path, transform_train, data_path=args.data_path, partition='train',
                                mismatch=args.mismatch)
     num_images = len(image_loader)
@@ -370,6 +383,7 @@ def main(args, tuning_model=False):
 
     if args.save_best:
         torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + '.pth')
+        # Sort retrieved results and save them to a file.
         pairs = []
         for (given, ret, ret_val) in zip(best_retrieved[0][0], best_retrieved[0][1], best_retrieved[1]):
             pairs.append({'given': given, 'ret': ret, 'val': ret_val})
@@ -379,7 +393,7 @@ def main(args, tuning_model=False):
             given = pair['given']
             ret = pair['ret']
             val = pair['val']
-            # only save id to identify from layer1/2.json later.
+            # Only save id to identify from layer1/2.json later on.
             results_file.write('Given Id: ' + given + ', Retrieved Id: ' + ret + ', Val: {0:.4f}'.format(val) + '\n')
         results_file.close()
 
@@ -408,7 +422,7 @@ def main(args, tuning_model=False):
         if not os.path.exists('experiments/'):
             os.makedirs('experiments/')
             
-        f=open('experiments/main_results.pkl', 'wb')
+        f = open('experiments/main_results.pkl', 'wb')
         pickle.dump(results_dict, f)
         f.close()
         

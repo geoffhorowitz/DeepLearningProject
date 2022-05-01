@@ -21,14 +21,12 @@ class Im2Recipe(nn.Module):
             cnn_children.append(child)
         # remove final layer from cnn
         self.image_model = nn.Sequential(*cnn_children[:-1])
-        # 2048 is featureDim of input of last fc
+        # 2048 is featureDim of input of original fc
         self.fc_image_layer = nn.Sequential(
             nn.Linear(2048, args.embed_dim),
             nn.Tanh(),
             nn.LayerNorm(args.embed_dim)
         )
-        # self.relu = nn.ReLU()
-        # self.class_linear = nn.Linear(args.embed_dim, args.num_classes)
         
         if args.recipe_model == 'transformer':
             self.recipe_linear = nn.Linear(args.ingredient_embedding_dim + args.recipe_embedding_dim, args.embed_dim)
@@ -47,10 +45,8 @@ class Im2Recipe(nn.Module):
         out_image = self.image_model(x[0])
         out_image = self.fc_image_layer(out_image.reshape((out_image.shape[0], out_image.shape[1])))
 
-        ingred_output = self.ingred_model(x) #target added for transformer
-        recipe_output = self.recipe_model(x) # target added for transformer
-        # print(ingred_output.size())
-        # print(recipe_output.size())
+        ingred_output = self.ingred_model(x)
+        recipe_output = self.recipe_model(x)
         out_recipe = torch.cat((recipe_output, ingred_output), 1)
         out_recipe = self.recipe_tanh(self.recipe_linear(out_recipe))
         out_recipe = self.recipe_norm(out_recipe)
