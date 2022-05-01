@@ -1,10 +1,11 @@
 Train:
   batch_size: 256
   learning_rate: 0.0001
-  epochs: 4
+  epochs: 2
+  steps: [4, 8]
   embed_dim: 1024
   num_classes: 1048
-  train_percent: 0.1
+  train_percent: 0.2
   val_percent: 0.05
   semantic_reg: False
   cos_weight: 0.8
@@ -31,13 +32,13 @@ ingredient_lstm:
   ingredient_lstm_dim: 300
   ingredient_embedding_dim: 300 # vocab size 30167 x 300 embedded
   ingredient_w2v_path: 'data/vocab.bin'
-  ingred_model_variant: 'base' # base, custom_basic, custom_fusion, paper
+  ingred_model_variant: 'custom_basic' # base, custom_basic, custom_fusion, paper
   #ingred_dropout: .2 
 
 recipe_lstm:
   recipe_lstm_dim: 1024
   recipe_embedding_dim: 1024
-  recipe_model_variant: 'base' # base, custom_basic, custom_fusion, paper
+  recipe_model_variant: 'custom_basic' # base, custom_basic, custom_fusion, paper
   #recipe_dropout: .2
 
 transformer:

@@ -14,6 +14,8 @@ import word2vec
 from lstm.Transformer import TransformerTranslator
 
 '''
+reference for "paper" models
+
 reference ("_ref") models source:
 @article{marin2019learning,
   title = {Recipe1M+: A Dataset for Learning Cross-Modal Embeddings for Cooking Recipes and Food Images},
@@ -91,6 +93,7 @@ class IngredModel(nn.Module):
             packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(embedded, seq_length.cpu().data.numpy(), batch_first=True, enforce_sorted=False)
             output, hidden = self.model(packed_embedded)
             output_unpacked, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
+            #output_unpacked = output_unpacked[:, :, :300] + output_unpacked[:, : ,300:] # for bi-directional
             #print('ingred_out', output_unpacked.shape)
             out = output_unpacked[:, -1, :]
             return out
