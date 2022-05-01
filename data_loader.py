@@ -33,7 +33,7 @@ def default_loader(path):
         im = Image.open(path).convert('RGB')
         return im
     except:
-        print('cannot load image from {}'.format(path))
+        # print('cannot load image from {}'.format(path))
         #print(..., file=sys.stderr)
         return Image.new('RGB', (224, 224), 'white')
 
@@ -50,7 +50,7 @@ class ImageLoader(data.Dataset):
         else:
             self.partition = partition
 
-        # can change back to partition if weird behavior
+        # Hard-code to test set since that is where are data is coming from.
         file_directory = 'test'
         self.env = lmdb.open(os.path.join(data_path, file_directory + '_lmdb'), max_readers=1, readonly=True, lock=False,
                              readahead=False, meminit=False)
@@ -60,6 +60,7 @@ class ImageLoader(data.Dataset):
 
         self.square = square
         self.imgPath = img_path
+        # updated this to be a variable
         self.mismtch = mismatch
         self.maxInst = 20
 
@@ -77,7 +78,7 @@ class ImageLoader(data.Dataset):
 
     def __getitem__(self, index):
         recipId = self.ids[index]
-        # we force 80 percent of them to be a mismatch
+        # Force mismatch if above threshold for training
         if self.partition == 'train':
             match = np.random.uniform() > self.mismtch
         elif self.partition == 'val' or self.partition == 'test':
@@ -128,14 +129,14 @@ class ImageLoader(data.Dataset):
             # path = self.imgPath + rndimgs[imgIdx]['id']
 
         # instructions
-        instrs = instrs_orig = sample['intrs']
+        instrs = sample['intrs']
         itr_ln = len(instrs)
         t_inst = np.zeros((self.maxInst, np.shape(instrs)[1]), dtype=np.float32)
         t_inst[:itr_ln][:] = instrs
         instrs = torch.FloatTensor(t_inst)
 
         # ingredients
-        ingrs = ingrs_orig = sample['ingrs'].astype(int)
+        ingrs = sample['ingrs'].astype(int)
         ingrs = torch.LongTensor(ingrs)
         igr_ln = max(np.nonzero(sample['ingrs'])[0]) + 1
 
