@@ -382,6 +382,8 @@ def main(args, tuning_model=False):
     print('Best Prec @1 Loss: {:.4f}'.format(best))
 
     if args.save_best:
+        if not os.path.exists('checkpoints/'):
+            os.makedirs('checkpoints/')
         torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + '.pth')
         # Sort retrieved results and save them to a file.
         pairs = []
