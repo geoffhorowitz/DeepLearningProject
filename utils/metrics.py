@@ -3,6 +3,25 @@ import random
 import numpy as np
 import sys
 
+'''
+reference ("_ref") models source:
+@article{marin2019learning,
+  title = {Recipe1M+: A Dataset for Learning Cross-Modal Embeddings for Cooking Recipes and Food Images},
+  author = {Marin, Javier and Biswas, Aritro and Ofli, Ferda and Hynes, Nicholas and
+  Salvador, Amaia and Aytar, Yusuf and Weber, Ingmar and Torralba, Antonio},
+  journal = {{IEEE} Trans. Pattern Anal. Mach. Intell.},
+  year = {2019}
+}
+
+@inproceedings{salvador2017learning,
+  title={Learning Cross-modal Embeddings for Cooking Recipes and Food Images},
+  author={Salvador, Amaia and Hynes, Nicholas and Aytar, Yusuf and Marin, Javier and
+          Ofli, Ferda and Weber, Ingmar and Torralba, Antonio},
+  booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition},
+  year={2017}
+}
+'''
+
 def generate_metrics(args, metric_store):
     # metric analysis ref: https://github.com/torralba-lab/im2recipe-Pytorch/blob/master/scripts/rank.py
     # taken from paper to ensure comparability of results

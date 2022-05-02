@@ -20,6 +20,14 @@ prohibited and subject to being investigated as a GT honor code violation.
 -----do not edit anything above this line---
 """
 
+'''
+This file was originally developed for Gatech CS 7643 and modified by Geoff Horowitz for Assignment #4
+Supplemental Author: Geoff Horowitz
+e-mail: ghorowitz3@gatech.edu
+
+Geoff Horowitz subsequently modified this file further for use in final project
+'''
+
 import numpy as np
 
 import torch

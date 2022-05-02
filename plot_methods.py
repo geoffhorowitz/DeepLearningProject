@@ -1,3 +1,8 @@
+'''
+Author: Geoff Horowitz
+e-mail: ghorowitz3@gatech.edu
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -146,6 +151,7 @@ def plot_complexity_curve(results_dict, logx_scale=False):
 
         figure_count += 1
         training_range = np.zeros(len(val.keys()))
+        #training_label = []
         train_loss_mean = np.zeros(len(val.keys()))
         train_loss_std = np.zeros(len(val.keys()))
         train_acc_mean = np.zeros(len(val.keys()))
@@ -163,7 +169,7 @@ def plot_complexity_curve(results_dict, logx_scale=False):
         val_accrec_mean = np.zeros(len(val.keys()))
         val_accrec_std = np.zeros(len(val.keys()))
 
-
+        
         for exp_count, (exp_val, all_runs) in enumerate(val.items()):
 
             train_loss_mean[exp_count] = results_dict[key][exp_val]['train_loss_mean'][-1]
@@ -183,7 +189,8 @@ def plot_complexity_curve(results_dict, logx_scale=False):
             val_accrec_mean[exp_count] = results_dict[key][exp_val]['val_recacc_mean'][-1]
             val_accrec_std[exp_count] = results_dict[key][exp_val]['val_recacc_std'][-1]
 
-            training_range[exp_count]  = exp_val
+            training_range[exp_count] = exp_count
+            #training_label.append(exp_val)
 
         # Plot learning curve
         #fig, axs = plt.subplots(1, 1)
@@ -218,6 +225,9 @@ def plot_complexity_curve(results_dict, logx_scale=False):
         ax.set_ylabel("Loss")
         ax.legend(loc="best")
         ax.grid(linestyle='dotted')
+        #ax.set_xticks([0, 1, 2])
+        #ax.set_xlim([0, 2])
+        #ax.set_xticklabels(training_label, minor=False)
         plt.savefig(save_path[:-4]+'_loss'+save_path[-4:])
         plt.close(fig)
 

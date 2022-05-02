@@ -1,6 +1,7 @@
 name: dl
 channels:
   - defaults
+  - pytorch
 dependencies:
   - numpy
   - matplotlib
@@ -8,9 +9,11 @@ dependencies:
   - pillow
   - word2vec
   - tqdm
+  - pytorch
+  - torchvision
+  - cudatoolkits=11.3
   - pip
   - pip:
     - lmdb
-    - torch
-    - torchvision
-    #- torchtext
+    #- torch
+    #- torchvision
