@@ -1,0 +1,3 @@
+Final Project Github Repository: https://github.com/geoffhorowitz/DeepLearningProject
+
+To run experimentes, open run_main.ipynb and click "run all cells"
